@@ -35,11 +35,10 @@ master: helper.o worker master.o
 
 clang-format:
 	clang-format -style=mozilla -dump-config > .clang-format
-	clang-format -i hello.c
 	clang-format -i helper.h
 	clang-format -i helper.c
-	clang-format -i ckpt.c
-	clang-format -i restart.c
+	clang-format -i worker.c
+	clang-format -i master.c
 
 build: clang-format master
 
