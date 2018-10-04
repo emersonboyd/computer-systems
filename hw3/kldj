@@ -1,0 +1,28 @@
+[1mdiff --git a/../hw3-old/worker.c b/worker.c[m
+[1mindex 36ef279..38f2a5d 100644[m
+[1m--- a/../hw3-old/worker.c[m
+[1m+++ b/worker.c[m
+[36m@@ -99,7 +99,7 @@[m [mint64_t read_int_from_fd(int input_fd) {[m
+ 	int64_t n;[m
+ [m
+ 	int read_result = read(input_fd, &n, sizeof(int64_t));[m
+[31m-	if (read_result < 0) {[m
+[32m+[m	[32mif (read_result != sizeof(int64_t)) {[m
+ 		perror("Could not read 64-bit integer in worker from master");[m
+ 		exit(1);[m
+ 	}[m
+[36m@@ -109,10 +109,13 @@[m [mint64_t read_int_from_fd(int input_fd) {[m
+ [m
+ void write_double_to_fd(int output_fd, double f) {[m
+ 	int write_result = write(output_fd, &f, sizeof(double));[m
+[31m-	if (write_result < 0) {[m
+[32m+[m	[32mif (write_result != sizeof(double)) {[m
+ 		perror("Could not write double in worker to master");[m
+ 		exit(1);[m
+ 	}[m
+[32m+[m	[32m// char buff[100];[m
+[32m+[m	[32m// sprintf(buff, "Just wrote %f to file descriptor %d\n", f, output_fd);[m
+[32m+[m	[32m// perror(buff);[m
+ }[m
+ [m
+ int read_int_from_stdin() {[m
