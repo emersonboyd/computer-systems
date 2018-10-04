@@ -189,6 +189,12 @@ int main(int argc, char **argv) {
 		case SELECT:
 			f = read_select(worker_input_pipes, num_workers);
 			break;
+		case POLL:
+			f = read_poll(worker_input_pipes, num_workers);
+			break;
+		case EPOLL:
+			f = read_epoll(worker_input_pipes, num_workers);
+			break;
 		default:
 			perror("Invalid wait mechanism");
 			break;

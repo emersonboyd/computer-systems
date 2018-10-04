@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/select.h>
+#include <poll.h>
+#include <sys/epoll.h>
 
 #include "helper.h"
 
@@ -58,8 +60,8 @@ int setup_fd_set_and_timeval(int** worker_input_pipes, int num_workers, fd_set *
 		max_fd = max(max_fd, fd);
 	}
 
-	tv->tv_sec = 1;
-	tv->tv_usec = 0;
+	tv->tv_sec = 0;
+	tv->tv_usec = 500000;
 
 	// printf("Highest fd: %d\n", max_fd);
 
@@ -109,5 +111,55 @@ double read_select(int** worker_input_pipes, int num_workers) {
 	}
 
 	return f;
+}
 
+double read_poll(int** worker_input_pipes, int num_workers) {
+	double f = 0;
+
+	struct pollfd *pfd = (struct pollfd *) malloc(sizeof(struct pollfd) * num_workers);
+	int i;
+	for (i = 0; i < num_workers; i++) {
+		int fd = worker_input_pipes[i][READ_END];
+		pfd[i].fd = fd;
+		pfd[i].events = 1; // 1 signifies that we want to know when we can read
+	}
+	int timeout = 500; // one-half second
+
+	int poll_result;
+	while((poll_result = poll(pfd, num_workers, timeout)) > 0) {
+		for (i = 0; i < num_workers; i++) {
+			int fd = worker_input_pipes[i][READ_END];
+			
+			// check if we can read from the file descriptor
+			if (pfd[i].revents != 1) {
+				continue;
+			}
+
+			printf("Revents on worker %d is equal to 1, so we can read\n", i);
+
+			double d;
+			int read_result = read(fd, &d, sizeof(double));
+			if (read_result < 0) {
+				perror("Couln't read in master from worker");
+				exit(1);
+			}
+
+			f += d;
+		}
+	}
+
+	if (poll_result < 0) {
+		perror("Error using poll function");
+		exit(1);
+	}
+
+	return f;
+}
+
+double read_epoll(int** worker_input_pipes, int num_workers) {
+	double f = 0;
+
+
+
+	return f;
 }
