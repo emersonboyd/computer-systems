@@ -159,7 +159,55 @@ double read_poll(int** worker_input_pipes, int num_workers) {
 double read_epoll(int** worker_input_pipes, int num_workers) {
 	double f = 0;
 
+	int epoll_fd = epoll_create(num_workers); // the input argument does not matter
+	if (epoll_fd < 0) {
+		perror("Couldn't create an epoll file descriptor");
+		exit(1);
+	}
 
+	struct epoll_event *read_events = (struct epoll_event *) malloc(sizeof(struct epoll_event) * num_workers);
 
+	// add our file descriptors to the event
+	int i;
+	for (i = 0; i < num_workers; i++) {
+		int pipe_fd = worker_input_pipes[i][READ_END];
+
+		read_events[i].events = EPOLLIN;
+		read_events[i].data.fd = pipe_fd;
+
+		int epoll_ctl_result = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, pipe_fd, &read_events[i]);
+		if (epoll_ctl_result != 0) {
+			perror("Could not add a file descriptor to the epoll event");
+			exit(1);
+		}
+	}
+
+	// keep looping through epoll events until there are none left to process
+	int timeout = 500; //one-half second
+	int event_count;
+	while((event_count = epoll_wait(epoll_fd, read_events, num_workers, timeout)) > 0) {
+		for (i = 0; i < event_count; i++) {
+			int read_fd = read_events[i].data.fd;
+			// printf("Events: %u\n", read_events[i].events);
+			// printf("Awaiting input from file descriptor %d with event_count %d\n", read_fd, event_count);
+
+			double d;
+			int read_result = read(read_fd, &d, sizeof(double));
+			if (read_result != sizeof(double)) {
+				perror("Couldn't read in master from worker");
+			}
+
+			// printf("Just read %f from file descriptor %d\n", d, read_fd);
+
+			f += d;
+		}
+	}
+
+	// lastly, we close the epoll file descriptor
+	int close_result = close(epoll_fd);
+	if (close_result != 0) {
+		perror("Failed to close the epoll file descriptor");
+	}
+	
 	return f;
 }
