@@ -59,3 +59,5 @@ run_epoll: check
 	./master --worker_path ./worker --num_workers $(NUM_WORKERS) --wait_mechanism epoll -x $(X) -n $(N)
 
 dist:
+	dir=`basename $$PWD`; cd ..; tar cvf $$dir.tar ./$$dir; gzip $$dir.tar
+
