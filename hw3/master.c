@@ -65,8 +65,8 @@ const Arg* parse_arguments(int argc, char **argv) {
 			a->num_workers = (int *) malloc(sizeof(int));
 			*(a->num_workers) = atoi(arg);
 
-			if (*(a->num_workers) > FD_SETSIZE) {
-				perror("Please enter a number of workers less than or equal to FD_SETSIZE");
+			if (*(a->num_workers) <= 0 || *(a->num_workers) > FD_SETSIZE) {
+				perror("Please enter a number of workers where 0 < num_workers <= FD_SETSIZE");
 				exit(1);
 			}
 		}
@@ -178,13 +178,16 @@ int main(int argc, char **argv) {
 			exit(1);
 		}
 
-		printf("Just wrote %li to worker %d with %d total workers\n", t, worker_counter, num_workers);
+		// printf("Just wrote %li to worker %d with %d total workers\n", t, worker_counter, num_workers);
 	}
 
 	double f = 0;
 	switch(*(a->wait_mechanism)) {
 		case SEQUENTIAL:
 			f = read_sequential(worker_input_pipes, num_workers, n);
+			break;
+		case SELECT:
+			f = read_select(worker_input_pipes, num_workers);
 			break;
 		default:
 			perror("Invalid wait mechanism");

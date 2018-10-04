@@ -35,7 +35,18 @@ build: master
 
 check: clean build
 
-run_default: check
+run_default: run_sequential
+
+run_sequential: check
 	./master --worker_path ./worker --num_workers 5 --wait_mechanism sequential -x 2 -n 12
+
+run_select: check
+	./master --worker_path ./worker --num_workers 5 --wait_mechanism select -x 2 -n 12
+
+run_poll: check
+	./master --worker_path ./worker --num_workers 5 --wait_mechanism poll -x 2 -n 12
+
+run_epoll: check
+	./master --worker_path ./worker --num_workers 5 --wait_mechanism epoll -x 2 -n 12
 
 dist:
