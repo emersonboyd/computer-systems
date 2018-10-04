@@ -29,16 +29,12 @@ double read_sequential(int** worker_input_pipes, int num_workers, int n) {
 	for (n_count = 0; n_count < n; n_count++) {
 		int worker_count = n_count % num_workers;
 		
-		// printf("Awaiting result from worker %d with %d total workers\n", worker_count, num_workers);
-
 		double d;
 		int read_result = read(worker_input_pipes[worker_count][READ_END], &d, sizeof(double));
 		if (read_result != sizeof(double)) {
 			perror("Couldn't read in master from worker");
 			exit(1);
 		}
-
-		// printf("Gathered: %f\n", d);
 
 		f += d;
 	}
@@ -55,15 +51,12 @@ int setup_fd_set_and_timeval(int** worker_input_pipes, int num_workers, fd_set *
 	int i;
 	for (i = 0; i < num_workers; i++) {
 		int fd = worker_input_pipes[i][READ_END];
-		// printf("Setting up file descriptor %d\n", fd);
 		FD_SET(fd, set);
 		max_fd = max(max_fd, fd);
 	}
 
 	tv->tv_sec = 0;
 	tv->tv_usec = 500000;
-
-	// printf("Highest fd: %d\n", max_fd);
 
 	return max_fd;
 }
@@ -84,11 +77,8 @@ double read_select(int** worker_input_pipes, int num_workers) {
 
 			// check if the read bit is set for the given file descriptor
 			if (!FD_ISSET(fd, &set)) {
-				// printf("not set: %d\n", fd);
 				continue;
 			}
-
-			printf("Awaiting read from file descriptor %d\n", fd);
 
 			double d;
 			int read_result = read(fd, &d, sizeof(double));
@@ -96,8 +86,6 @@ double read_select(int** worker_input_pipes, int num_workers) {
 				perror("Couldn't read in master from worker");
 				exit(1);
 			}
-
-			printf("Just read %f from file descriptor %d\n", d, fd);
 
 			f += d;
 		}
@@ -134,8 +122,6 @@ double read_poll(int** worker_input_pipes, int num_workers) {
 			if (pfd[i].revents != 1) {
 				continue;
 			}
-
-			printf("Revents on worker %d is equal to 1, so we can read\n", i);
 
 			double d;
 			int read_result = read(fd, &d, sizeof(double));
@@ -183,13 +169,11 @@ double read_epoll(int** worker_input_pipes, int num_workers) {
 	}
 
 	// keep looping through epoll events until there are none left to process
-	int timeout = 500; //one-half second
+	int timeout = 250; //one-half second
 	int event_count;
 	while((event_count = epoll_wait(epoll_fd, read_events, num_workers, timeout)) > 0) {
 		for (i = 0; i < event_count; i++) {
 			int read_fd = read_events[i].data.fd;
-			// printf("Events: %u\n", read_events[i].events);
-			// printf("Awaiting input from file descriptor %d with event_count %d\n", read_fd, event_count);
 
 			double d;
 			int read_result = read(read_fd, &d, sizeof(double));
@@ -197,10 +181,13 @@ double read_epoll(int** worker_input_pipes, int num_workers) {
 				perror("Couldn't read in master from worker");
 			}
 
-			// printf("Just read %f from file descriptor %d\n", d, read_fd);
-
 			f += d;
 		}
+	}
+
+	if (event_count < 0) {
+		perror("Error using epoll function");
+		exit(1);
 	}
 
 	// lastly, we close the epoll file descriptor

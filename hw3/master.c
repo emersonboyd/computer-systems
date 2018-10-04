@@ -23,6 +23,7 @@ static const char *ARG_N = "-n";
 static const char *MECHANISM_STRINGS[] = {"sequential", "select", "poll", "epoll"};
 static const int NUM_MECHANISMS = 4;
 static const char *USAGE_MESSAGE = "Usage: ./master [--worker_path path] [--num_workers num] [--wait_mechanism sequential | select | poll | epoll] [-x num] [-n num]";
+static const int MAX_WORKERS = 509; // we have a maximum number of workers because of the limit of number of open files on the machine
 
 enum mechanism {
 	SEQUENTIAL = 0,
@@ -43,8 +44,8 @@ typedef struct {
 
 const Arg* parse_arguments(int argc, char **argv) {
 	if (argc != 11) {
-		perror("Please enter 11 arguments");
-		perror(USAGE_MESSAGE);
+		printf("Please enter 11 arguments\n");
+		printf("%s\n", USAGE_MESSAGE);
 		exit(1);
 	}
 
@@ -65,8 +66,9 @@ const Arg* parse_arguments(int argc, char **argv) {
 			a->num_workers = (int *) malloc(sizeof(int));
 			*(a->num_workers) = atoi(arg);
 
-			if (*(a->num_workers) <= 0 || *(a->num_workers) > FD_SETSIZE) {
-				perror("Please enter a number of workers where 0 < num_workers <= FD_SETSIZE");
+			if (*(a->num_workers) <= 0 || *(a->num_workers) > MAX_WORKERS) {
+				printf("Please enter a number of workers where 0 < num_workers <= %d\n", MAX_WORKERS);
+				printf("%s\n", USAGE_MESSAGE);
 				exit(1);
 			}
 		}
@@ -81,8 +83,8 @@ const Arg* parse_arguments(int argc, char **argv) {
 
 			// if we haven't determined the mechanism, the user entered an invalid mechanism value
 			if (a->wait_mechanism == NULL) {
-				perror("Invalid value provided for option --wait_mechanism");
-				perror(USAGE_MESSAGE);
+				printf("Invalid value provided for option --wait_mechanism\n");
+				printf("%s\n", USAGE_MESSAGE);
 				exit(1);
 			}
 		}
@@ -98,13 +100,35 @@ const Arg* parse_arguments(int argc, char **argv) {
 			*(a->n) = atoi(arg);
 		}
 		else {
-			perror("Invalid/duplicate argument option");
-			perror(USAGE_MESSAGE);
+			printf("Invalid/duplicate argument option\n");
+			printf("%s\n", USAGE_MESSAGE);
 			exit(1);
 		}
  	}
 
 	return a;
+}
+
+void close_fds(int fd1, int fd2) {
+	int close_result = close(fd1);
+	close_result |= close(fd2);
+
+	if (close_result != 0) {
+		perror("Could not close file descriptors");
+		exit(1);
+	}
+}
+
+void close_remaining_pipes(int** master_input_pipes, int** worker_input_pipes, int num_workers) {
+	int i;
+	for (i = 0; i < num_workers; i++) {
+		int close_result = close(master_input_pipes[i][WRITE_END]);
+		close_result |= close(worker_input_pipes[i][READ_END]);
+		if (close_result != 0) {
+			printf("Failed to close unused pipes in master on iteration %d: %s\n", i, strerror(errno));
+			exit(1);
+		}
+	}
 }
 
 int main(int argc, char **argv) {
@@ -114,8 +138,7 @@ int main(int argc, char **argv) {
 	int num_workers = *(a->num_workers);
 	int n = *(a->n);
 
-	// setup the array of child process IDs and the pipelines
-	pid_t *cpids = (pid_t *) malloc(sizeof(pid_t) * num_workers);
+	// setup the array of the pipelines
 	int **master_input_pipes = (int **) malloc(sizeof(int *) * num_workers);
 	int **worker_input_pipes = (int **) malloc(sizeof(int *) * num_workers);
 	int i;
@@ -136,11 +159,8 @@ int main(int argc, char **argv) {
 		
 		// check if this is the new process that spawned
 		if (cpid == 0) {
-			// int close_result = close(master_input_pipes[i][WRITE_END]);
-			// close_result |= close(worker_input_pipes[i][READ_END]);
-			// if (close_result != 0) {
-			// 	printf("Failed to close unused pipes in worker on iteration %d: %s\n", i, strerror(errno));
-			// }
+			close_fds(master_input_pipes[i][WRITE_END], worker_input_pipes[i][READ_END]); // close unused file descriptors
+
 			int dup_result = dup2(master_input_pipes[i][READ_END], 0);
 			dup_result |= dup2(worker_input_pipes[i][WRITE_END], 1);
 			if (dup_result < 0) { 
@@ -148,7 +168,7 @@ int main(int argc, char **argv) {
 				exit(1);
 			}
 			execl(a->worker_path, a->worker_path, "-x", a->x_str, NULL);
-			perror("Returned to main program from child process unexepectedly");
+			printf("Returned to main program from child process unexepectedly\n");
 			exit(1);
 		}
 		else if (cpid < 0) {
@@ -156,13 +176,7 @@ int main(int argc, char **argv) {
 			exit(1);
 		}
 
-		// int close_result = close(master_input_pipes[i][READ_END]);
-		// close_result |= close(worker_input_pipes[i][WRITE_END]);
-		// if (close_result != 0) {
-		// 	printf("Failed to close unused pipes in master on iteration %d: %s\n", i, strerror(errno));
-		// }
-
-		cpids[i] = cpid;
+		close_fds(master_input_pipes[i][READ_END], worker_input_pipes[i][WRITE_END]); // close unused file descriptors
 	}
 
 	// here we deliver the "n" to each of the workers
@@ -177,30 +191,30 @@ int main(int argc, char **argv) {
 			perror("Could not write value from master to worker pipe");
 			exit(1);
 		}
-
-		// printf("Just wrote %li to worker %d with %d total workers\n", t, worker_counter, num_workers);
 	}
 
 	double f = 0;
 	switch(*(a->wait_mechanism)) {
 		case SEQUENTIAL:
+			printf("Detected sequential\n");
 			f = read_sequential(worker_input_pipes, num_workers, n);
 			break;
 		case SELECT:
+			printf("Detected select\n");
 			f = read_select(worker_input_pipes, num_workers);
 			break;
 		case POLL:
+			printf("Detected poll\n");
 			f = read_poll(worker_input_pipes, num_workers);
 			break;
 		case EPOLL:
+			printf("Detected epoll\n");
 			f = read_epoll(worker_input_pipes, num_workers);
 			break;
 		default:
-			perror("Invalid wait mechanism");
-			break;
+			printf("Invalid wait mechanism\n");
+			exit(1);
 	}
-
-	printf("Result: %f\n", f);
 
 	// make sure we kill the workers
 	for (i = 0; i < num_workers; i++) {
@@ -212,17 +226,9 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	close_remaining_pipes(master_input_pipes, worker_input_pipes, num_workers);
+
+	printf("Result: %f\n", f);
+
 	return 0;
 }
-
-// TODO: ensure we don't have to write based on WAIT_MECHANISM
-// TODO: uncomment the //close(fd) when duping in both scenarios
-
-
-
-
-
-
-
-
-

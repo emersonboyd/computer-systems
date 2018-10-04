@@ -12,22 +12,18 @@
 static const int ASCII_0 = 48;
 static const int ASCII_9 = 57;
 static const char *ARG_X = "-x";
-static const char *ARG_INPUT = "-i";
-static const char *ARG_OUTPUT = "-o";
-static const char *USAGE_MESSAGE = "Usage: ./worker [-x num] [-i num (optional)] [-o num (optional)]";
+static const char *USAGE_MESSAGE = "Usage: ./worker [-x num]";
 static const int INPUT_DEFAULT = 0;
 static const int OUTPUT_DEFAULT = 1;
 
 typedef struct {
 	int *x;
-	int *input;
-	int *output;
 } Arg;
 
 const Arg* parse_arugments(int argc, char **argv) {
-	if (argc != 3 && argc != 5 && argc != 7) {
-		perror("Please enter 3, 5 or 7 arguments");
-		perror(USAGE_MESSAGE);
+	if (argc != 3) {
+		printf("Please enter 3 arguments\n");
+		printf("%s\n", USAGE_MESSAGE);
 		exit(1);
 	}
 
@@ -43,37 +39,17 @@ const Arg* parse_arugments(int argc, char **argv) {
 			a->x = (int *) malloc(sizeof(int));
 			*(a->x) = atoi(arg);
 		}
-		else if (strcmp(argo, ARG_INPUT) == 0 && a->input == NULL) {
-			a->input = (int *) malloc(sizeof(int));
-			*(a->input) = atoi(arg);
-		}
-		else if (strcmp(argo, ARG_OUTPUT) == 0 && a->output == NULL) {
-			a->output = (int *) malloc(sizeof(int));
-			*(a->output) = atoi(arg);
-		}
 		else {
-			perror("Invalid/duplicate argument option");
-			perror(USAGE_MESSAGE);
+			printf("Invalid/duplicate argument option\n");
+			printf("%s\n", USAGE_MESSAGE);
 			exit(1);
 		}
  	}
 
  	if (a->x == NULL) {
- 		perror("Please enter a value for x");
- 		perror(USAGE_MESSAGE);
+ 		printf("Please enter a value for x\n");
+ 		printf("%s\n", USAGE_MESSAGE);
  		exit(1);
- 	}
-
- 	// by default we assign the input file descriptor to 0 (stdin)
- 	if (a->input == NULL) {
-		a->input = (int *) malloc(sizeof(int));
- 		*(a->input) = INPUT_DEFAULT;
- 	}
-
- 	// by default we assign the output file descriptor to 1 (stdout)
- 	if (a->output == NULL) {
-		a->output = (int *) malloc(sizeof(int));
-		*(a->output) = OUTPUT_DEFAULT;
  	}
 
 	return a;
@@ -113,9 +89,6 @@ void write_double_to_fd(int output_fd, double f) {
 		perror("Could not write double in worker to master");
 		exit(1);
 	}
-	// char buff[100];
-	// sprintf(buff, "Just wrote %f to file descriptor %d\n", f, output_fd);
-	// perror(buff);
 }
 
 int read_int_from_stdin() {
@@ -170,21 +143,19 @@ double fnx_int64(int n, int64_t x) {
 int main(int argc, char **argv) {
 	const Arg *a = parse_arugments(argc, argv);
 	int x = *(a->x);
-	int input_fd = *(a->input);
-	int output_fd = *(a->output);
 
 	bool is_fifo = get_is_fifo();
 
 	while (true) {
 		if (is_fifo) {
-			int64_t n = read_int_from_fd(input_fd);
+			int64_t n = read_int_from_fd(INPUT_DEFAULT);
 
 			if (n == 0) {
 				break;
 			}
 
 			double f = fnx_int64(n, x);
-			write_double_to_fd(output_fd, f);
+			write_double_to_fd(OUTPUT_DEFAULT, f);
 		}
 		else {
 			printf("Input n (0 to exit): ");

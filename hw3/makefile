@@ -1,4 +1,7 @@
 CFLAGS=-O0 -Wall -Werror
+NUM_WORKERS=5
+X=2
+N=12
 
 all: check
 
@@ -7,6 +10,7 @@ default: check
 clean-ckpt:
 
 clean:
+	$(RM) .clang-format
 	$(RM) helper.o
 	$(RM) helper
 	$(RM) worker.o
@@ -30,23 +34,29 @@ master: helper.o worker master.o
 	gcc $(CFLAGS) -g -o master master.o helper.o -lm
 
 clang-format:
+	clang-format -style=mozilla -dump-config > .clang-format
+	clang-format -i hello.c
+	clang-format -i helper.h
+	clang-format -i helper.c
+	clang-format -i ckpt.c
+	clang-format -i restart.c
 
-build: master
+build: clang-format master
 
 check: clean build
 
 run_default: run_sequential
 
 run_sequential: check
-	./master --worker_path ./worker --num_workers 5 --wait_mechanism sequential -x 2 -n 12
+	./master --worker_path ./worker --num_workers $(NUM_WORKERS) --wait_mechanism sequential -x $(X) -n $(N)
 
 run_select: check
-	./master --worker_path ./worker --num_workers 5 --wait_mechanism select -x 2 -n 12
+	./master --worker_path ./worker --num_workers $(NUM_WORKERS) --wait_mechanism select -x $(X) -n $(N)
 
 run_poll: check
-	./master --worker_path ./worker --num_workers 5 --wait_mechanism poll -x 2 -n 12
+	./master --worker_path ./worker --num_workers $(NUM_WORKERS) --wait_mechanism poll -x $(X) -n $(N)
 
 run_epoll: check
-	./master --worker_path ./worker --num_workers 5 --wait_mechanism epoll -x 2 -n 12
+	./master --worker_path ./worker --num_workers $(NUM_WORKERS) --wait_mechanism epoll -x $(X) -n $(N)
 
 dist:
