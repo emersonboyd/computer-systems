@@ -39,7 +39,7 @@ void list_print(size_t bin_size) {
 }
 
 void list_insert(MallocHeader *hdr) {
-	node_t *n = my_malloc(sizeof(node_t));
+	node_t *n = (node_t *) my_malloc(sizeof(node_t));
 	assert(n != NULL);
 	
 	n->h = hdr;
@@ -67,7 +67,7 @@ void *my_malloc(size_t size) {
 		return NULL;
 	}
 
-	// TODO: Validate size.
+	// validate size.
 	size_t alloc_size = size + sizeof(MallocHeader);
 
 	int index = get_index_for_size(alloc_size);
@@ -79,7 +79,6 @@ void *my_malloc(size_t size) {
 	// check if we can get away with re-using previously allocated memory
 	if (!TAILQ_EMPTY(head)) {
 		node_t *n = NULL;
-		node_t *next = NULL;
 
 		if (index < NUM_BINS) {
 			n = TAILQ_FIRST(head);
@@ -87,12 +86,12 @@ void *my_malloc(size_t size) {
 			ret = n->h;
 		}
 		else {
-			TAILQ_FOREACH_SAFE(n, head, nodes, next)
+			TAILQ_FOREACH(n, head, nodes)
 	    	{
 	        	if (alloc_size <= n->h->size) {
 	        		TAILQ_REMOVE(head, n, nodes);
 	        		ret = n->h;
-	        		break; // TODO this break could not apply properly in the foreach
+	        		break;
 	        	}
 
 	       		// if there were not options large enough to hold our alloc_size, we need to allocate new memory
@@ -162,7 +161,27 @@ void *my_calloc(size_t nmemb, size_t size) {
 
 	size_t n_bytes = nmemb * size;
 	void *ret = my_malloc(n_bytes);
-	memset(ret, 0, n_bytes);
+	assert(ret != NULL);
+	void *memset_result = memset(ret, 0, n_bytes);
+	assert(memset_result != NULL);
 
+	return ret;
+}
+
+void *my_realloc(void *ptr, size_t size) {
+	if (ptr == NULL || size <= 0) {
+		return NULL;
+	}
+
+	MallocHeader *hdr_original = (MallocHeader *) (ptr - sizeof(MallocHeader));
+	void *ret = my_malloc(size);
+	if (ret == NULL) {
+		return NULL;
+	}
+
+	void *memcpy_result = memcpy(ret, ptr, hdr_original->size);
+	assert(memcpy_result != NULL);
+
+	my_free(hdr_original);
 	return ret;
 }
