@@ -1,6 +1,7 @@
 #include "helper.h"
 #include <unistd.h>
 #include <stdio.h>
+#include <malloc.h>
 
 int main() {
 	init_bins();
@@ -34,6 +35,8 @@ int main() {
 	int *int3 = (int *) my_calloc(1, sizeof(int));
 	int *int4 = (int *) my_realloc(int2, sizeof(int));
 	printf("%p %p %p %p\n", int1, int2, int3, int4);
+
+	malloc_stats();
 
 	return 0;
 }
