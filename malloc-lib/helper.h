@@ -21,13 +21,12 @@ typedef struct node
 
 typedef TAILQ_HEAD(head_s, node) head_t;
 
+extern head_t heads[4];
+
 void init_bins();
 bool is_init();
 void list_print(size_t bin_size);
-
-void *my_malloc(size_t size);
-void my_free(void *ptr);
-void *my_calloc(size_t nmemb, size_t size);
-void *my_realloc(void *ptr, size_t size);
+void list_insert(MallocHeader *hdr);
+int get_index_for_size(size_t alloc_size);
 
 #endif
