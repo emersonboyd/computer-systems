@@ -10,7 +10,7 @@ static const size_t BIN_SIZES[] = {32, 128, 512};
 
 typedef struct
 {
-  size_t size;
+  size_t size; // the allocation size including the size of the header
 } MallocHeader;
 
 typedef struct node
@@ -21,12 +21,13 @@ typedef struct node
 
 typedef TAILQ_HEAD(head_s, node) head_t;
 
-extern head_t heads[4];
+extern head_t heads[3];
 
 void init_bins();
 bool is_init();
 void list_print(size_t bin_size);
 void list_insert(MallocHeader *hdr);
+bool use_bins_for_size(size_t alloc_size);
 int get_index_for_size(size_t alloc_size);
 
 #endif

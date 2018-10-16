@@ -22,13 +22,16 @@ void free(void *ptr) {
 					 __FILE__, __LINE__, hdr->size, hdr);
 	write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
-	// write(STDOUT_FILENO, "list_insert start\n", strlen("list_insert start\n") + 1);
-	list_insert(hdr);
-	// write(STDOUT_FILENO, "list_insert finish\n", strlen("list_insert finish\n") + 1);
-
-
-	// int munmap_result = munmap(hdr, hdr->size);
-	// assert(munmap_result >= 0);
+	// if we have an allocated size greater than the bin holds, we just "munmap" the area
+	if (hdr->size > BIN_SIZES[NUM_BINS - 1]) {
+		write(STDOUT_FILENO, "freeing with unmap\n", strlen("freeing with unmap\n") + 1);
+		int munmap_result = munmap(hdr, hdr->size);
+		assert(munmap_result >= 0);
+	}
+	else {
+		write(STDOUT_FILENO, "freeing by adding to bin\n", strlen("freeing by adding to bin\n") + 1);
+		list_insert(hdr);
+	}
 
 	return;
 }

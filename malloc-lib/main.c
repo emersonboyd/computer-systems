@@ -4,7 +4,7 @@
 #include <string.h>
 
 int main() {	
-	void *ptr0 = malloc(64);
+	void *ptr0 = malloc(400);
 	void *ptr1 = malloc(23432);
 	free(ptr1);
 	void *ptr2 = malloc(20);

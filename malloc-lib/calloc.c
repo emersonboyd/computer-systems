@@ -20,7 +20,6 @@ void *calloc(size_t nmemb, size_t size) {
 	list_print(32);
 	list_print(128);
 	list_print(512);
-	list_print(513);
 
 	return ret;
 }
