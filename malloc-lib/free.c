@@ -23,7 +23,7 @@ void free(void *ptr) {
 	write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
 	// if we have an allocated size greater than the bin holds, we just "munmap" the area
-	if (hdr->size > BIN_SIZES[NUM_BINS - 1]) {
+	if (hdr->is_mmaped) {
 		write(STDOUT_FILENO, "freeing with unmap\n", strlen("freeing with unmap\n") + 1);
 		int munmap_result = munmap(hdr, hdr->size);
 		assert(munmap_result >= 0);
