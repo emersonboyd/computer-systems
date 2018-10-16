@@ -93,5 +93,7 @@ void *malloc(size_t size) {
 					 __FILE__, __LINE__, size, alloc_size, ret);
 	write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
+	// make sure our malloc is aligned to 8 bytes
+	assert(((unsigned long) (ret + sizeof(MallocHeader)) & 7) == 0);
 	return ret + sizeof(MallocHeader);
 }

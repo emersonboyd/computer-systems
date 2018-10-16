@@ -13,7 +13,7 @@ int main() {
 	free(ptr1);
 	free(ptr2);
 	free(ptr3);
-
+	
 	// char buf[1024];
 	// snprintf(buf, 1024, "%p %p %d\n", int1, int2, *int2);
 	// write(STDOUT_FILENO, buf, strlen(buf) + 1);
