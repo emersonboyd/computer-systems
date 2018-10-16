@@ -77,9 +77,6 @@ void init_bins() {
 	int i;
 	for (i = 0; i < NUM_BINS; i++) {
 		TAILQ_INIT(&heads[i]);
-		char buf[1024];
-		snprintf(buf, 1024, "Initialized head at %p\n", &heads[i]);
-		write(STDOUT_FILENO, buf, strlen(buf) + 1);
 	}
 
 	init = true;
