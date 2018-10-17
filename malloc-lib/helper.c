@@ -17,6 +17,11 @@ bool use_bins_for_size(size_t alloc_size) {
 	return alloc_size <= BIN_SIZES[NUM_BINS - 1];
 }
 
+bool has_free_block_for_size(size_t alloc_size) {
+	int index = get_index_for_size(alloc_size);
+	return !TAILQ_EMPTY(&heads[index]);
+}
+
 // returns the bin index associated with the given allocation size
 int get_index_for_size(size_t alloc_size) {
 	int i;
@@ -30,18 +35,44 @@ int get_index_for_size(size_t alloc_size) {
 	exit(1);
 }
 
-void list_insert(MallocHeader *free_hdr) {
-	size_t n_alloc_size = sizeof(MallocHeader) + sizeof(node_t);
-	size_t n_request_size = round_up_to_page_size(n_alloc_size);
-	MallocHeader *n_hdr = (MallocHeader *) mmap(0, n_request_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-	assert(n_hdr != MAP_FAILED);
-	n_hdr->size = n_request_size;
-	n_hdr->is_mmaped = true;
+void *list_remove(size_t alloc_size) {
+	int index = get_index_for_size(alloc_size);
+	head_t *head = &heads[index];
 
-	node_t *n = (node_t *) ((void *) n_hdr + sizeof(MallocHeader));
+	node_t *n = TAILQ_FIRST(head);
+
+	// point further in memory to the farthest available memory block
+	void *ret = ((void *) n) + n->num_free * n->size;
+
+	if (n->num_free == 0) {
+		TAILQ_REMOVE(head, n, nodes);
+	}
+	else {
+		n->num_free -= 1;
+	}
+
+	return ret;
+}
+
+void list_insert(MallocHeader *free_hdr, int num_free_blocks) {
+	assert(num_free_blocks > 0);
+
+	char buf[1024];
+	snprintf(buf, 1024, "Given a free header at %p with size %zu and a multiple of %d\n", free_hdr, free_hdr->size, num_free_blocks);
+	write(STDOUT_FILENO, buf, strlen(buf) + 1);
+
+	assert(sizeof(node_t) <= free_hdr->size);
+
+	// get the size on the stack before we overwrite it
+	size_t size = free_hdr->size;
+	node_t *n = (node_t *) free_hdr;
+	n->size = size;
+	n->num_free = num_free_blocks - 1;
+
+	char buf4[1024];
+	snprintf(buf4, 1024, "Just created a node at %p with a size of %zu and %d number of free blocks\n", n, n->size, n->num_free);
+	write(STDOUT_FILENO, buf4, strlen(buf4) + 1);
 	
-	n->h = free_hdr;
-
 	int index = get_index_for_size(free_hdr->size);
 	head_t *head = &heads[index];
 
@@ -66,7 +97,7 @@ void list_print(size_t bin_size) {
     TAILQ_FOREACH(e, head, nodes)
     {
 		char buf[1024];
-		snprintf(buf, 1024, "Bin %lu: %lu bytes free at %p\n", bin_size, e->h->size, e->h);
+		snprintf(buf, 1024, "Bin %lu: %lu bytes free at %p\n", bin_size, e->size, e);
 		write(STDOUT_FILENO, buf, strlen(buf) + 1);
     }
 }

@@ -14,6 +14,8 @@ clean:
 	$(RM) realloc.o
 	$(RM) main.o
 	$(RM) main
+	$(RM) t-test1.o
+	$(RM) t-test1
 	$(RM) libmalloc.so
 
 helper.o: helper.c helper.h
@@ -40,6 +42,12 @@ main.o: main.c helper.h
 main: main.o helper.o
 	gcc ${CFLAGS} -g -o main main.o helper.o
 
+t-test1.o: t-test1.c
+	gcc ${CFLAGS} -c -fpic -o t-test1.o t-test1.c
+
+t-test1: t-test1.o
+	gcc ${CFLAGS} -g -o t-test1 t-test1.o -lpthread
+
 restart: restart.c helper.h helper.o
 	gcc ${CFLAGS} -g -static \
 	-Wl,-Ttext-segment=5000000 -Wl,-Tdata=5100000 -Wl,-Tbss=5200000 \
@@ -48,10 +56,13 @@ restart: restart.c helper.h helper.o
 clang-format:
 	clang-format -style=mozilla -dump-config > .clang-format
 
-build: clang-format libmalloc.so main
+build: clang-format libmalloc.so main t-test1
 
 check: clean build
 	LD_PRELOAD=./libmalloc.so ./main
+
+test: clean build
+	LD_PRELOAD=./libmalloc.so ./t-test1
 
 dist:
 	dir=`basename $$PWD`; cd ..; tar cvf $$dir.tar ./$$dir; gzip $$dir.tar

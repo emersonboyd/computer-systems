@@ -4,21 +4,13 @@
 #include <string.h>
 
 int main() {	
-	void *ptr0 = malloc(300);
-	void *ptr1 = malloc(20);
-	void *ptr2 = calloc(1, 200);
-	void *ptr3 = calloc(1, 51234);
+	int *ptr0 = malloc(sizeof(int));
+	*ptr0 = 1023;
+	int *ptr1 = realloc(ptr0, sizeof(int) - 2);
 
-	free(ptr0);
-	free(ptr1);
-	free(ptr2);
-	free(ptr3);
-	
-	// char buf[1024];
-	// snprintf(buf, 1024, "%p %p %d\n", int1, int2, *int2);
-	// write(STDOUT_FILENO, buf, strlen(buf) + 1);
-
-	malloc_stats();
+	char buf[1024];
+	snprintf(buf, 1024, "p0 at %p and p1 at %p with value of %d\n", ptr0, ptr1, *ptr1);
+	write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
 	return 0;
 }
