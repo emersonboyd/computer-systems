@@ -8,15 +8,17 @@
 #include "helper.h"
 
 void free(void *ptr) {
+	if (ptr == NULL) {
+		return;
+	}
+
 	pthread_mutex_t mutex;
+	int mutex_init_result = pthread_mutex_init(&mutex, NULL);
+	assert(mutex_init_result == 0);
 	pthread_mutex_lock(&mutex);
 
 	if (!is_init()) {
 		init_bins();
-	}
-
-	if (ptr == NULL) {
-		return;
 	}
 
 	MallocHeader *hdr = (MallocHeader *) (ptr - sizeof(MallocHeader));
@@ -38,6 +40,8 @@ void free(void *ptr) {
 	}
 
 	pthread_mutex_unlock(&mutex);
+	int mutex_destroy_result = pthread_mutex_destroy(&mutex);
+	assert(mutex_destroy_result == 0);
 
 	return;
 }
