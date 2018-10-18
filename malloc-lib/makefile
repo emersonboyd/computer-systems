@@ -12,6 +12,7 @@ clean:
 	$(RM) free.o
 	$(RM) calloc.o
 	$(RM) realloc.o
+	$(RM) memalign.o
 	$(RM) main.o
 	$(RM) main
 	$(RM) t-test1.o
@@ -33,8 +34,11 @@ calloc.o: calloc.c helper.h
 realloc.o: realloc.c helper.h
 	gcc ${CFLAGS} -c -fpic -o realloc.o realloc.c
 
-libmalloc.so: helper.o malloc.o free.o calloc.o realloc.o
-	gcc ${CFLAGS} -shared -o libmalloc.so helper.o malloc.o free.o calloc.o realloc.o
+memalign.o: memalign.c helper.h
+	gcc ${CFLAGS} -c -fpic -o memalign.o memalign.c
+
+libmalloc.so: helper.o malloc.o free.o calloc.o realloc.o memalign.o
+	gcc ${CFLAGS} -shared -o libmalloc.so helper.o malloc.o free.o calloc.o realloc.o memalign.o
 
 main.o: main.c helper.h
 	gcc ${CFLAGS} -c -fpic -o main.o main.c

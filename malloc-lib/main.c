@@ -17,14 +17,27 @@ int main() {
 	// 	void *ptr2 = calloc(2, 234);
 	// }
 
-	void *ptr = calloc(1, 300);
-	ptr = malloc(234234);
+	void *ptr;
+	size_t alignment, size;
+	for (alignment = 1; alignment < 8192; alignment *= 2) {
+		for (size = 0; size < 10000; size += 4) {
+			ptr = memalign(alignment, size);
+			free(ptr);
+		}
+	}
 	// ptr = malloc(3400);
 	// free(ptr);
 
 	char buf[1024];
 	snprintf(buf, 1024, "%p\n", ptr);
 	write(STDOUT_FILENO, buf, strlen(buf) + 1);
+
+	void *ret = memalign(256, 5);
+
+	snprintf(buf, 1024, "%p\n", ret);
+	write(STDOUT_FILENO, buf, strlen(buf) + 1);
+
+	assert(is_aligned(ret, 256), __FILE__, __LINE__);
 
 	return 0;
 }
@@ -38,3 +51,4 @@ int main() {
 // TODO what happens if they request to malloc size 0?
 // TODO make sure the ret* is a multiple of 8 bytes
 // TODO get ride of assertions lying around
+// TODO delete the stack values around line 37 in free.c

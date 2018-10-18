@@ -11,10 +11,17 @@ head_t heads[3];
 
 const char *ALLOC_SIZE_OUT_OF_RANGE = "Alloc size too large to get bin index\n";
 
-void assert(bool condition) {
+void assert(bool condition, const char *fname, int lineno) {
 	if (!condition) {
+		char buf[1024];
+		snprintf(buf, 1024, "assertion failed in file %s at line %d\n", fname, lineno);
+		write(STDERR_FILENO, buf, strlen(buf) + 1);
 		exit(1);
 	}
+}
+
+bool is_aligned(void *ptr, size_t alignment) {
+	return (((size_t) ptr) & (alignment - 1)) == 0;
 }
 
 // returns whether bins should be used for the given allocation size
@@ -60,8 +67,9 @@ void *list_remove(size_t alloc_size) {
 }
 
 void list_insert(MallocHeader *free_hdr, int num_free_blocks) {
-	assert(num_free_blocks > 0);
-	assert(sizeof(node_t) <= free_hdr->size);
+	assert(num_free_blocks > 0, __FILE__, __LINE__);
+	assert(sizeof(node_t) <= free_hdr->size, __FILE__, __LINE__);
+	assert(free_hdr->offset == 0, __FILE__, __LINE__);
 
 	// get the size on the stack before we overwrite it
 	size_t size = free_hdr->size;
