@@ -1,6 +1,5 @@
 #include <malloc.h>
 #include <string.h>
-#include <assert.h>
 
 #include "helper.h"
 
@@ -14,10 +13,6 @@ void *calloc(size_t nmemb, size_t size) {
 	assert(ret != NULL);
 	void *memset_result = memset(ret, 0, n_bytes);
 	assert(memset_result != NULL);
-
-	list_print(32);
-	list_print(128);
-	list_print(512);
 
 	return ret;
 }

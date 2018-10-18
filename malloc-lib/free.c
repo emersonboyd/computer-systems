@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <assert.h>
 #include <pthread.h>
 #include "helper.h"
 
@@ -22,20 +21,14 @@ void free(void *ptr) {
 	}
 
 	MallocHeader *hdr = (MallocHeader *) (ptr - sizeof(MallocHeader));
-
-	char buf[1024];
-	snprintf(buf, 1024, "%s:%d free(): Freeing %lu bytes at %p\n",
-					 __FILE__, __LINE__, hdr->size, hdr);
-	write(STDOUT_FILENO, buf, strlen(buf) + 1);
+	assert(hdr->size == BIN_SIZES[0] || hdr->size == BIN_SIZES[1] || hdr->size == BIN_SIZES[2] || hdr->size > BIN_SIZES[2]);
 
 	// if we have an allocated size greater than the bin holds, we just "munmap" the area
 	if (!use_bins_for_size(hdr->size)) {
-		write(STDOUT_FILENO, "freeing with unmap\n", strlen("freeing with unmap\n") + 1);
 		int munmap_result = munmap(hdr, hdr->size);
 		assert(munmap_result >= 0);
 	}
 	else {
-		write(STDOUT_FILENO, "freeing by adding to bin\n", strlen("freeing by adding to bin\n") + 1);
 		list_insert(hdr, 1);
 	}
 

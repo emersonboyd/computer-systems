@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <assert.h>
 #include <pthread.h>
 #include "helper.h"
 
@@ -32,10 +31,6 @@ void *malloc(size_t size) {
 		assert(ret != NULL);
 		MallocHeader *hdr = (MallocHeader *) ret;
 		hdr->size = BIN_SIZES[get_index_for_size(alloc_size)];
-		
-		char buf[1024];
-		snprintf(buf, 1024, "Just got a header at %p from bin of %zu bytes\n", hdr, hdr->size);
-		write(STDOUT_FILENO, buf, strlen(buf) + 1);
 	}
 	else {
 		// get the size we need to request from sbrk or mmap
@@ -48,12 +43,9 @@ void *malloc(size_t size) {
 			ret = sbrk(request_size);
 			assert(ret >= 0);
 			
-			char buf[1024];
-			snprintf(buf, 1024, "Just requested %zu bytes for an allocation size of %zu and MallocHeader size of %zu\n", request_size, alloc_size, sizeof(MallocHeader));
-			write(STDOUT_FILENO, buf, strlen(buf) + 1);
-
 			// here, we have to do the work of adding the remaining parts of request_size to empty bins
 			request_size -= alloc_size;
+			assert(request_size % alloc_size == 0);
 			int num_free_blocks = request_size / alloc_size;
 			void *free_ptr = (void *) (ret + alloc_size);
 			MallocHeader *free_ptr_hdr = (MallocHeader *) free_ptr;
@@ -74,12 +66,10 @@ void *malloc(size_t size) {
 	int mutex_destroy_result = pthread_mutex_destroy(&mutex);
 	assert(mutex_destroy_result == 0);
 	
-	char buf[1024];
-	snprintf(buf, 1024, "%s:%d malloc(%zu): Allocated %zu bytes at %p\n",
-					 __FILE__, __LINE__, size, alloc_size, ret);
-	write(STDOUT_FILENO, buf, strlen(buf) + 1);
-
 	// make sure our malloc is aligned to 8 bytes
-	assert(((unsigned long) (ret + sizeof(MallocHeader)) & 7) == 0);
+	// char buf[1024];
+	// snprintf(buf, 1024, "%lx\n", (((unsigned long) (ret + sizeof(MallocHeader) - sizeof(MallocHeader))) & (ALIGN_BITS - 1)));
+	// write(STDOUT_FILENO, buf, strlen(buf) + 1);
+	assert((((unsigned long) (ret + sizeof(MallocHeader))) & (ALIGN_BITS - 1)) == 0);
 	return ret + sizeof(MallocHeader);
 }

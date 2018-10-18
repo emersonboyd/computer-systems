@@ -6,7 +6,8 @@
 #include <sys/queue.h>
 
 static const int NUM_BINS = 3;
-static const size_t BIN_SIZES[] = {32, 128, 512};
+static const size_t BIN_SIZES[] = {64, 128, 512};
+static const unsigned long ALIGN_BITS = 8 * 8; // 8 bits per bytes times 8 bytes
 
 typedef struct
 {
@@ -24,9 +25,9 @@ typedef TAILQ_HEAD(head_s, node) head_t;
 
 extern head_t heads[3];
 
+void assert(bool condition);
 void init_bins();
 bool is_init();
-void list_print(size_t bin_size);
 void *list_remove(size_t alloc_size);
 void list_insert(MallocHeader *hdr, int num_free_blocks);
 bool use_bins_for_size(size_t alloc_size);

@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <assert.h>
 #include <string.h>
 #include <sys/mman.h>
 
@@ -11,6 +10,12 @@ bool init = false;
 head_t heads[3];
 
 const char *ALLOC_SIZE_OUT_OF_RANGE = "Alloc size too large to get bin index\n";
+
+void assert(bool condition) {
+	if (!condition) {
+		exit(1);
+	}
+}
 
 // returns whether bins should be used for the given allocation size
 bool use_bins_for_size(size_t alloc_size) {
@@ -56,11 +61,6 @@ void *list_remove(size_t alloc_size) {
 
 void list_insert(MallocHeader *free_hdr, int num_free_blocks) {
 	assert(num_free_blocks > 0);
-
-	char buf[1024];
-	snprintf(buf, 1024, "Given a free header at %p with size %zu and a multiple of %d\n", free_hdr, free_hdr->size, num_free_blocks);
-	write(STDOUT_FILENO, buf, strlen(buf) + 1);
-
 	assert(sizeof(node_t) <= free_hdr->size);
 
 	// get the size on the stack before we overwrite it
@@ -68,38 +68,11 @@ void list_insert(MallocHeader *free_hdr, int num_free_blocks) {
 	node_t *n = (node_t *) free_hdr;
 	n->size = size;
 	n->num_free = num_free_blocks - 1;
-
-	char buf4[1024];
-	snprintf(buf4, 1024, "Just created a node at %p with a size of %zu and %d number of free blocks\n", n, n->size, n->num_free);
-	write(STDOUT_FILENO, buf4, strlen(buf4) + 1);
 	
 	int index = get_index_for_size(free_hdr->size);
 	head_t *head = &heads[index];
 
-	// char buf[1024];
-	// snprintf(buf, 1024, "Inserting at bin index %d with size %lu at head pointer %p\n", index, hdr->size, head);
-	// write(STDOUT_FILENO, buf, strlen(buf) + 1);
-
 	TAILQ_INSERT_TAIL(head, n, nodes);
-
-	// write(STDOUT_FILENO, "finished insert\n", strlen("finished insert\n"));
-}
-
-void list_print(size_t bin_size) {
-	int index = get_index_for_size(bin_size);
-	head_t *head = &heads[index];
-
-	char buf[1024];
-	snprintf(buf, 1024, "Bin %lu head at pointer %p\n", bin_size, head);
-	write(STDOUT_FILENO, buf, strlen(buf) + 1);
-
-    struct node * e = NULL;
-    TAILQ_FOREACH(e, head, nodes)
-    {
-		char buf[1024];
-		snprintf(buf, 1024, "Bin %lu: %lu bytes free at %p\n", bin_size, e->size, e);
-		write(STDOUT_FILENO, buf, strlen(buf) + 1);
-    }
 }
 
 void init_bins() {

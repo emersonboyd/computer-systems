@@ -1,6 +1,5 @@
 #include <malloc.h>
 #include <string.h>
-#include <assert.h>
 #include "helper.h"
 
 size_t min(size_t a, size_t b) {
