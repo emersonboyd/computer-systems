@@ -21,7 +21,8 @@ void malloc_stats() {
 
 	const char * STR_ARENA_0 = "Arena 0:";
 
-	const char *STR_TOTAL_SIZE = "Total size of arena: ";
+	const char *STR_TOTAL_SIZE_BEGIN = "Total size of arena: ";
+	const char *STR_TOTAL_SIZE_END = " bytes";
 	const char *STR_NUM_BINS = "Total number of bins: ";
 	const char *STR_BIN_BEGIN = "Bin ";
 	const char *STR_BIN_END = ":";
@@ -58,7 +59,7 @@ void malloc_stats() {
 	snprintf(buf, BUF_LEN, "%s\n", STR_ARENA_0);
 	write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
-	snprintf(buf, BUF_LEN, "%s%zu\n", STR_TOTAL_SIZE, total_size);
+	snprintf(buf, BUF_LEN, "%s%zu%s\n", STR_TOTAL_SIZE_BEGIN, total_size, STR_TOTAL_SIZE_END);
 	write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
 	snprintf(buf, BUF_LEN, "%s%d\n", STR_NUM_BINS, NUM_BINS);

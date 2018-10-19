@@ -12,10 +12,7 @@ void free(void *ptr) {
 		return;
 	}
 
-	pthread_mutex_t mutex;
-	int mutex_init_result = pthread_mutex_init(&mutex, NULL);
-	assert(mutex_init_result == 0, __FILE__, __LINE__);
-	pthread_mutex_lock(&mutex);
+	pthread_mutex_lock(&MUTEX);
 
 	if (!is_init()) {
 		init_bins();
@@ -45,8 +42,6 @@ void free(void *ptr) {
 		increment_num_free_requests(index); // update our malloc_stats
 	}
 
-	pthread_mutex_unlock(&mutex);
-	int mutex_destroy_result = pthread_mutex_destroy(&mutex);
-	assert(mutex_destroy_result == 0, __FILE__, __LINE__);
+	pthread_mutex_unlock(&MUTEX);
 	return;
 }

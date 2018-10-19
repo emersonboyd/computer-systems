@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <sys/queue.h>
+#include <pthread.h>
 
 static const int NUM_BINS = 3;
 static const size_t BIN_SIZES[] = {64, 128, 512};
@@ -24,6 +25,8 @@ typedef struct node
 
 typedef TAILQ_HEAD(head_s, node) head_t;
 
+extern int PAGE_SIZE;
+extern pthread_mutex_t MUTEX;
 extern head_t heads[3];
 extern int used_blocks[3];
 extern size_t mmap_size;

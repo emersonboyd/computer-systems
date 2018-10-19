@@ -9,10 +9,7 @@
 #include "helper.h"
 
 void *malloc(size_t size) {
-	pthread_mutex_t mutex;
-	int mutex_init_result = pthread_mutex_init(&mutex, NULL);
-	assert(mutex_init_result == 0, __FILE__, __LINE__);
-	pthread_mutex_lock(&mutex);
+	pthread_mutex_lock(&MUTEX);
 
 	if (!is_init()) {
 		init_bins();
@@ -41,6 +38,7 @@ void *malloc(size_t size) {
 		hdr->offset = 0; // if we're getting a memory address from a bin, we know that it's inplace
 		assert(round_up_to_page_size(alloc_size) % alloc_size == 0, __FILE__, __LINE__);
 		increment_used_blocks(index); // update our malloc_stats
+		increment_num_malloc_requests(index); // update our malloc_stats
 	}
 	else {
 		// get the size we need to request from sbrk or mmap
@@ -81,9 +79,7 @@ void *malloc(size_t size) {
 		hdr->offset = 0;
 	}
 
-	pthread_mutex_unlock(&mutex);
-	int mutex_destroy_result = pthread_mutex_destroy(&mutex);
-	assert(mutex_destroy_result == 0, __FILE__, __LINE__);
+	pthread_mutex_unlock(&MUTEX);
 	
 	// make sure our malloc is aligned to 8 bytes
 	assert(is_aligned(ret + sizeof(MallocHeader), ALIGN_BYTES), __FILE__, __LINE__);

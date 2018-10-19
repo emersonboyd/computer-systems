@@ -2,10 +2,12 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <pthread.h>
 
 #include "helper.h"
 
-static int PAGE_SIZE;
+int PAGE_SIZE;
+pthread_mutex_t MUTEX = PTHREAD_MUTEX_INITIALIZER;
 bool init = false;
 head_t heads[3];
 int used_blocks[3]; // each index represents the number of used blocks in the corresponding bin

@@ -9,15 +9,12 @@ size_t min(size_t a, size_t b) {
 }
 
 void *realloc(void *ptr, size_t size) {
-	if (ptr == NULL && size <= 0) {
-		return NULL;
+	if (ptr == NULL) {
+		return malloc(size);
 	}
 	else if (size <= 0) {
 		free(ptr);
 		return NULL;
-	}
-	else if (ptr == NULL) {
-		return malloc(size);
 	}
 
 	void *ret = malloc(size);
