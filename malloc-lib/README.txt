@@ -1,4 +1,4 @@
-A very basic main file can be run by calling "make", while "make test" can be called to run the t-test1 program given by the Professor Arya.
+A very basic main file can be run by calling "make", while "make test" can be called to run the t-test1 program provided by the Professor Arya.
 
 There are two structs, one that defines the used memory (MallocHeader) and one that defines the free memory (node_t).
 
