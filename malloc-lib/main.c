@@ -1,12 +1,12 @@
 #include <assert.h>
+#include <malloc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <malloc.h>
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   size_t size = 12;
 
-  void *mem = malloc(size);
+  void* mem = malloc(size);
 
   printf("Successfully malloc'd %zu bytes at addr %p\n", size, mem);
   assert(mem != NULL);
@@ -17,6 +17,3 @@ int main(int argc, char **argv) {
 
   return 0;
 }
-
-// TODO READ OVER THE ASSIGNMENT TO MAKE SURE I'M FOLLOWING ALL OF THE RULES SPECIFIED
-// TODO format these files using clang-format

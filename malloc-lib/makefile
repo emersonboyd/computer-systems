@@ -63,6 +63,15 @@ restart: restart.c helper.h helper.o
 
 clang-format:
 	clang-format -style=mozilla -dump-config > .clang-format
+	clang-format -i helper.h
+	clang-format -i helper.c
+	clang-format -i malloc.c
+	clang-format -i free.c
+	clang-format -i calloc.c
+	clang-format -i realloc.c
+	clang-format -i memalign.c
+	clang-format -i malloc_stats.c
+	clang-format -i main.c
 
 build: clang-format lib main t-test1
 
