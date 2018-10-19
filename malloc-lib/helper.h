@@ -34,7 +34,7 @@ extern int num_malloc_requests[3];
 extern int num_free_requests[3];
 
 void assert(bool condition, const char *fname, int lineno);
-void init_bins();
+void initialize();
 bool is_init();
 void *list_remove(size_t alloc_size);
 void list_insert(MallocHeader *hdr, int num_free_blocks);

@@ -12,7 +12,7 @@ void malloc_stats() {
 	pthread_mutex_lock(&mutex);
 
 	if (!is_init()) {
-		init_bins();
+		initialize();
 	}
 
 	pthread_mutex_unlock(&mutex);

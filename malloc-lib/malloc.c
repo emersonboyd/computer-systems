@@ -1,6 +1,5 @@
 #include <malloc.h>
 #include <sys/mman.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
@@ -12,7 +11,7 @@ void *malloc(size_t size) {
 	pthread_mutex_lock(&MUTEX);
 
 	if (!is_init()) {
-		init_bins();
+		initialize();
 	}
 
 	if (size <= 0) {
@@ -35,7 +34,7 @@ void *malloc(size_t size) {
 		int index = get_index_for_size(alloc_size);
 		alloc_size = BIN_SIZES[index]; // update the alloc_size based on the bin we're pulling from
 		hdr->size = alloc_size;
-		hdr->offset = 0; // if we're getting a memory address from a bin, we know that it's inplace
+		hdr->offset = 0; // if we're getting a memory address from a bin, we know that it's inplace, so offset is zero
 		assert(round_up_to_page_size(alloc_size) % alloc_size == 0, __FILE__, __LINE__);
 		increment_used_blocks(index); // update our malloc_stats
 		increment_num_malloc_requests(index); // update our malloc_stats
@@ -74,6 +73,7 @@ void *malloc(size_t size) {
 			increment_mmap_size(alloc_size); // update our malloc_stats
 		}
 
+		// update the information in our header accordingly
 		MallocHeader *hdr = (MallocHeader *) ret;
 		hdr->size = alloc_size;
 		hdr->offset = 0;

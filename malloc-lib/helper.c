@@ -89,7 +89,7 @@ void list_insert(MallocHeader *free_hdr, int num_free_blocks) {
 	TAILQ_INSERT_TAIL(head, n, nodes);
 }
 
-void init_bins() {
+void initialize() {
 	assert(!is_init(), __FILE__, __LINE__);
 
 	PAGE_SIZE = sysconf(_SC_PAGESIZE);

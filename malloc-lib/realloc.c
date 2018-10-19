@@ -20,6 +20,7 @@ void *realloc(void *ptr, size_t size) {
 	void *ret = malloc(size);
 	assert(ret != NULL, __FILE__, __LINE__);
 
+	// copy over the old data to the new data
 	MallocHeader *hdr_original = (MallocHeader *) (ptr - sizeof(MallocHeader));
 	assert(hdr_original->offset == 0, __FILE__, __LINE__);
 	size_t data_size = hdr_original->size - sizeof(MallocHeader);

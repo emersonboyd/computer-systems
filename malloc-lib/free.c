@@ -15,7 +15,7 @@ void free(void *ptr) {
 	pthread_mutex_lock(&MUTEX);
 
 	if (!is_init()) {
-		init_bins();
+		initialize();
 	}
 
 	MallocHeader *hdr = (MallocHeader *) (ptr - sizeof(MallocHeader));
@@ -31,17 +31,20 @@ void free(void *ptr) {
 		if (munmap_result < 0) {
 			perror("failed to map region");
 		}
+
 		assert(munmap_result >= 0, __FILE__, __LINE__);
 		decrement_mmap_size(offset + size); // update our malloc_stats
 	}
 	else {
 		assert(hdr->offset == 0, __FILE__, __LINE__);
 		list_insert(hdr, 1);
+
 		int index = get_index_for_size(hdr->size);
 		decrement_used_blocks(index); // update our malloc_stats
 		increment_num_free_requests(index); // update our malloc_stats
 	}
 
 	pthread_mutex_unlock(&MUTEX);
+
 	return;
 }
