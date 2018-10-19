@@ -8,6 +8,10 @@
 static int PAGE_SIZE;
 bool init = false;
 head_t heads[3];
+int used_blocks[3]; // each index represents the number of used blocks in the corresponding bin
+size_t mmap_size;
+int num_malloc_requests[3];
+int num_free_requests[3];
 
 const char *ALLOC_SIZE_OUT_OF_RANGE = "Alloc size too large to get bin index\n";
 
@@ -84,12 +88,19 @@ void list_insert(MallocHeader *free_hdr, int num_free_blocks) {
 }
 
 void init_bins() {
-	PAGE_SIZE = getpagesize();
+	assert(!is_init(), __FILE__, __LINE__);
+
+	PAGE_SIZE = sysconf(_SC_PAGESIZE);
 
 	int i;
 	for (i = 0; i < NUM_BINS; i++) {
 		TAILQ_INIT(&heads[i]);
+		used_blocks[i] = 0;
+		num_malloc_requests[i] = 0;
+		num_free_requests[i] = 0;
 	}
+
+	mmap_size = 0;
 
 	init = true;
 }
@@ -104,4 +115,72 @@ size_t round_up_to_page_size(size_t size) {
 
 bool is_init() {
 	return init;
+}
+
+void increment_used_blocks(int index) {
+	assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
+
+	used_blocks[index]++;
+}
+
+void decrement_used_blocks(int index) {
+	assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
+
+	used_blocks[index]--;
+}
+
+int get_num_used_blocks(int index) {
+	assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
+
+	return used_blocks[index];
+}
+
+int get_num_free_blocks(int index) {
+	assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
+
+	int num_free_blocks = 0;
+	head_t *head = &heads[index];
+	node_t *n;
+	TAILQ_FOREACH(n, head, nodes) {
+   		// we add one because the node itself is converted to a free block once num_free reaches zero
+		num_free_blocks += n->num_free + 1;
+   	}
+	
+	return num_free_blocks;
+}
+
+void increment_mmap_size(size_t alloc_size) {
+	mmap_size += alloc_size;
+}
+
+void decrement_mmap_size(size_t alloc_size) {
+	mmap_size -= alloc_size;
+}
+
+size_t get_mmap_size() {
+	return mmap_size;
+}
+
+void increment_num_malloc_requests(int index) {
+	assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
+
+	num_malloc_requests[index] += 1;
+}
+
+void increment_num_free_requests(int index) {
+	assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
+
+	num_free_requests[index] += 1;
+}
+
+int get_num_malloc_requests(int index) {
+	assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
+
+	return num_malloc_requests[index];
+}
+
+int get_num_free_requests(int index) {
+	assert(index < NUM_BINS, __FILE__, __LINE__);
+
+	return num_free_requests[index];
 }

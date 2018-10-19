@@ -25,6 +25,10 @@ typedef struct node
 typedef TAILQ_HEAD(head_s, node) head_t;
 
 extern head_t heads[3];
+extern int used_blocks[3];
+extern size_t mmap_size;
+extern int num_malloc_requests[3];
+extern int num_free_requests[3];
 
 void assert(bool condition, const char *fname, int lineno);
 void init_bins();
@@ -36,5 +40,18 @@ bool has_free_block_for_size(size_t alloc_size);
 int get_index_for_size(size_t alloc_size);
 size_t round_up_to_page_size(size_t size);
 bool is_aligned(void *ptr, size_t alignment);
+
+// for malloc_stats
+void increment_used_blocks(int index);
+void decrement_used_blocks(int index);
+int get_num_used_blocks(int index);
+int get_num_free_blocks(int index);
+void increment_mmap_size(size_t alloc_size);
+void decrement_mmap_size(size_t alloc_size);
+size_t get_mmap_size();
+void increment_num_malloc_requests(int index);
+void increment_num_free_requests(int index);
+int get_num_malloc_requests(int index);
+int get_num_free_requests(int index);
 
 #endif

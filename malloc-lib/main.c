@@ -5,39 +5,26 @@
 #include "helper.h"
 
 int main() {
-	// int i;
-	// for (i = 0; i < 20000; i++) {
-	// 	size_t size = 234235;
-	// 	void *ptr1 = malloc(size);
-	// 	void *ptr2 = realloc(ptr1, size);
-	// 	free(ptr2);
-	// }
-	// for (i = 0; i < 20000; i++) {
-	// 	void *ptr1 = malloc(234);
-	// 	void *ptr2 = calloc(2, 234);
+	// void *ptr;
+	// size_t alignment, size;
+	// for (alignment = 1; alignment < 8192; alignment *= 2) {
+	// 	for (size = 0; size < 10000; size += 4) {
+	// 		ptr = malloc(size);
+	// 	}
 	// }
 
-	void *ptr;
-	size_t alignment, size;
-	for (alignment = 1; alignment < 8192; alignment *= 2) {
-		for (size = 0; size < 10000; size += 4) {
-			ptr = memalign(alignment, size);
-			free(ptr);
-		}
-	}
-	// ptr = malloc(3400);
-	// free(ptr);
+	malloc_stats();
+
+	void *p0 = malloc(256);
+	free(p0);
+	void *p1 = malloc(2342);
+	p1 = realloc(p1, 2990);
 
 	char buf[1024];
-	snprintf(buf, 1024, "%p\n", ptr);
+	snprintf(buf, 1024, "\n\n%p\n\n", p1);
 	write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
-	void *ret = memalign(256, 5);
-
-	snprintf(buf, 1024, "%p\n", ret);
-	write(STDOUT_FILENO, buf, strlen(buf) + 1);
-
-	assert(is_aligned(ret, 256), __FILE__, __LINE__);
+	malloc_stats();
 
 	return 0;
 }

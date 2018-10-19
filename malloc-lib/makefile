@@ -13,6 +13,7 @@ clean:
 	$(RM) calloc.o
 	$(RM) realloc.o
 	$(RM) memalign.o
+	$(RM) malloc_stats.o
 	$(RM) main.o
 	$(RM) main
 	$(RM) t-test1.o
@@ -37,8 +38,11 @@ realloc.o: realloc.c helper.h
 memalign.o: memalign.c helper.h
 	gcc ${CFLAGS} -c -fpic -o memalign.o memalign.c
 
-libmalloc.so: helper.o malloc.o free.o calloc.o realloc.o memalign.o
-	gcc ${CFLAGS} -shared -o libmalloc.so helper.o malloc.o free.o calloc.o realloc.o memalign.o
+malloc_stats.o: malloc_stats.c helper.h
+	gcc ${CFLAGS} -c -fpic -o malloc_stats.o malloc_stats.c
+
+lib: helper.o malloc.o free.o calloc.o realloc.o memalign.o malloc_stats.o
+	gcc ${CFLAGS} -shared -o libmalloc.so helper.o malloc.o free.o calloc.o realloc.o memalign.o malloc_stats.o
 
 main.o: main.c helper.h
 	gcc ${CFLAGS} -c -fpic -o main.o main.c
@@ -60,7 +64,7 @@ restart: restart.c helper.h helper.o
 clang-format:
 	clang-format -style=mozilla -dump-config > .clang-format
 
-build: clang-format libmalloc.so main t-test1
+build: clang-format lib main t-test1
 
 check: clean build
 	LD_PRELOAD=./libmalloc.so ./main
