@@ -7,7 +7,15 @@
 
 #include "helper.h"
 
+// pointer to the free hook that exists before the free hook is updated
+void (*original_free_hook)(void*, const void*);
+
 void free(void* ptr) {
+  // check if we should call our free hook
+  if (__free_hook != original_free_hook) {
+    return __free_hook(ptr, __builtin_return_address(0));
+  }
+
   if (ptr == NULL) {
     return;
   }
@@ -50,4 +58,8 @@ void free(void* ptr) {
   pthread_mutex_unlock(&MUTEX);
 
   return;
+}
+
+static __attribute__((constructor)) void init_original_free_hook(void) {
+  original_free_hook = __free_hook;
 }

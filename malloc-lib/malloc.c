@@ -7,7 +7,15 @@
 
 #include "helper.h"
 
+// pointer to the malloc hook that exists before the malloc hook is updated
+void* (*original_malloc_hook)(size_t, const void*);
+
 void* malloc(size_t size) {
+  // check if we should call our malloc hook
+  if (__malloc_hook != original_malloc_hook) {
+    return __malloc_hook(size, __builtin_return_address(0));
+  }
+
   pthread_mutex_lock(&MUTEX);
 
   if (!is_init()) {
@@ -89,4 +97,8 @@ void* malloc(size_t size) {
   assert(is_aligned(ret + sizeof(MallocHeader), ALIGN_BYTES), __FILE__,
          __LINE__);
   return ret + sizeof(MallocHeader);
+}
+
+static __attribute__((constructor)) void init_original_malloc_hook(void) {
+  original_malloc_hook = __malloc_hook;
 }

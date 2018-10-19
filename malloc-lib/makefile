@@ -1,4 +1,4 @@
-CFLAGS=-O0 -Wall -Werror
+CFLAGS=-O0 -Wno-deprecated-declarations -Wall -Werror
 
 all: check
 

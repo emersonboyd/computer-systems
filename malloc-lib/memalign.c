@@ -1,3 +1,4 @@
+#include <malloc.h>
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
@@ -8,9 +9,17 @@
 static const char* ERROR_MESSAGE_ALIGNMENT_NOT_POWER_OF_TWO =
     "Given alignment must be a power of two\n";
 
+// pointer to the memalign hook that exists before the memalign hook is updated
+void* (*original_memalign_hook)(size_t, size_t, const void*);
+
 size_t max(size_t a, size_t b) { return a > b ? a : b; }
 
 void* memalign(size_t alignment, size_t size) {
+  // check if we should call our memalign hook
+  if (__memalign_hook != original_memalign_hook) {
+    return __memalign_hook(alignment, size, __builtin_return_address(0));
+  }
+
   // check if alignment is a power of two
   if ((alignment == 0) || (alignment & (alignment - 1)) != 0) {
     write(STDERR_FILENO, ERROR_MESSAGE_ALIGNMENT_NOT_POWER_OF_TWO,
@@ -77,4 +86,8 @@ void* memalign(size_t alignment, size_t size) {
   assert((ret != NULL) && is_aligned(ret, alignment), __FILE__, __LINE__);
 
   return ret;
+}
+
+static __attribute__((constructor)) void init_original_memalign_hook(void) {
+  original_memalign_hook = __memalign_hook;
 }
