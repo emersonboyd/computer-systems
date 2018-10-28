@@ -10,16 +10,18 @@
 // pointer to the malloc hook that exists before the malloc hook is updated
 void* (*original_malloc_hook)(size_t, const void*);
 
-void* malloc(size_t size) {
+void*
+malloc(size_t size)
+{
   // check if we should call our malloc hook
   if (__malloc_hook != original_malloc_hook) {
     return __malloc_hook(size, __builtin_return_address(0));
   }
 
-  pthread_mutex_lock(&MUTEX);
+  pthread_mutex_lock(&BASE_MUTEX);
 
   if (!is_init()) {
-    initialize();
+    helper_initialize();
   }
 
   if (size <= 0) {
@@ -91,7 +93,7 @@ void* malloc(size_t size) {
     hdr->offset = 0;
   }
 
-  pthread_mutex_unlock(&MUTEX);
+  pthread_mutex_unlock(&BASE_MUTEX);
 
   // make sure our malloc is aligned to 8 bytes
   assert(is_aligned(ret + sizeof(MallocHeader), ALIGN_BYTES), __FILE__,
@@ -99,6 +101,8 @@ void* malloc(size_t size) {
   return ret + sizeof(MallocHeader);
 }
 
-static __attribute__((constructor)) void init_original_malloc_hook(void) {
+static __attribute__((constructor)) void
+init_original_malloc_hook(void)
+{
   original_malloc_hook = __malloc_hook;
 }

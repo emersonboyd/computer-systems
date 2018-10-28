@@ -1,4 +1,4 @@
-CFLAGS=-O0 -Wno-deprecated-declarations -Wall -Werror
+CFLAGS=-O0 -Wno-deprecated-declarations -Wall -Werror -pthread
 
 all: check
 

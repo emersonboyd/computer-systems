@@ -10,31 +10,44 @@ static const int NUM_BINS = 3;
 static const size_t BIN_SIZES[] = { 64, 128, 512 };
 static const unsigned long ALIGN_BYTES = 8;
 
-typedef struct {
+typedef struct
+{
   size_t size;   // the allocation size to the end of the memory region
                  // allocation, including the size of the header
   size_t offset; // this represents the bytes offset from the beginning of the
                  // region allocation, often zero
 } MallocHeader;
 
-typedef struct node {
+typedef struct node
+{
   size_t size;
   int num_free;
   TAILQ_ENTRY(node) nodes;
 } node_t;
 
+typedef struct
+{
+  pthread_mutex_t mutex;
+  int num;
+} MallocArena;
+
 typedef TAILQ_HEAD(head_s, node) head_t;
 
 extern int PAGE_SIZE;
-extern pthread_mutex_t MUTEX;
-extern head_t heads[3];
-extern int used_blocks[3];
-extern size_t mmap_size;
-extern int num_malloc_requests[3];
-extern int num_free_requests[3];
+extern int NUM_ARENAS;
+extern pthread_mutex_t BASE_MUTEX;
+extern bool init;
+extern __thread head_t heads[3];
+extern __thread int used_blocks[3];
+extern __thread size_t mmap_size;
+extern __thread int num_malloc_requests[3];
+extern __thread int num_free_requests[3];
+extern __thread MallocArena arena;
+extern int thread_num_counter;
+extern pthread_t* threads;
 
 void assert(bool condition, const char* fname, int lineno);
-void initialize();
+void helper_initialize();
 bool is_init();
 void* list_remove(size_t alloc_size);
 void list_insert(MallocHeader* hdr, int num_free_blocks);

@@ -5,14 +5,16 @@
 
 #include "helper.h"
 
-void malloc_stats() {
+void
+malloc_stats()
+{
   pthread_mutex_t mutex;
   int mutex_init_result = pthread_mutex_init(&mutex, NULL);
   assert(mutex_init_result == 0, __FILE__, __LINE__);
   pthread_mutex_lock(&mutex);
 
   if (!is_init()) {
-    initialize();
+    helper_initialize();
   }
 
   pthread_mutex_unlock(&mutex);

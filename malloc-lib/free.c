@@ -10,7 +10,9 @@
 // pointer to the free hook that exists before the free hook is updated
 void (*original_free_hook)(void*, const void*);
 
-void free(void* ptr) {
+void
+free(void* ptr)
+{
   // check if we should call our free hook
   if (__free_hook != original_free_hook) {
     return __free_hook(ptr, __builtin_return_address(0));
@@ -20,15 +22,15 @@ void free(void* ptr) {
     return;
   }
 
-  pthread_mutex_lock(&MUTEX);
+  pthread_mutex_lock(&BASE_MUTEX);
 
   if (!is_init()) {
-    initialize();
+    helper_initialize();
   }
 
   MallocHeader* hdr = (MallocHeader*)(ptr - sizeof(MallocHeader));
   assert(hdr->size == BIN_SIZES[0] || hdr->size == BIN_SIZES[1] ||
-             hdr->size == BIN_SIZES[2] || hdr->size > BIN_SIZES[2],
+           hdr->size == BIN_SIZES[2] || hdr->size > BIN_SIZES[2],
          __FILE__, __LINE__);
 
   // if we have an allocated size greater than the bin holds, we just "munmap"
@@ -39,7 +41,7 @@ void free(void* ptr) {
     size_t size = hdr->size;
 
     int munmap_result =
-        munmap((void*)hdr - hdr->offset, hdr->offset + hdr->size);
+      munmap((void*)hdr - hdr->offset, hdr->offset + hdr->size);
     if (munmap_result < 0) {
       perror("failed to map region");
     }
@@ -55,11 +57,13 @@ void free(void* ptr) {
     increment_num_free_requests(index); // update our malloc_stats
   }
 
-  pthread_mutex_unlock(&MUTEX);
+  pthread_mutex_unlock(&BASE_MUTEX);
 
   return;
 }
 
-static __attribute__((constructor)) void init_original_free_hook(void) {
+static __attribute__((constructor)) void
+init_original_free_hook(void)
+{
   original_free_hook = __free_hook;
 }

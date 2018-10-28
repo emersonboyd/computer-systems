@@ -10,7 +10,11 @@ void (*old_free_hook)(void*, const void*);
 void* (*old_realloc_hook)(void*, size_t, const void*);
 void* (*old_memalign_hook)(size_t, size_t, const void*);
 
-static void* my_malloc_hook(size_t size, const void* caller) {
+static void*
+my_malloc_hook(size_t size, const void* caller)
+{
+  write(STDOUT_FILENO, "Malloc hook\n", strlen("Malloc hook\n") + 1);
+
   /* Restore all old hooks */
   __malloc_hook = old_malloc_hook;
 
@@ -23,12 +27,14 @@ static void* my_malloc_hook(size_t size, const void* caller) {
   /* Restore our own hooks */
   __malloc_hook = my_malloc_hook;
 
-  write(STDOUT_FILENO, "Malloc hook\n", strlen("Malloc hook\n") + 1);
-
   return result;
 }
 
-static void my_free_hook(void* ptr, const void* caller) {
+static void
+my_free_hook(void* ptr, const void* caller)
+{
+  write(STDOUT_FILENO, "Free hook\n", strlen("Free hook\n") + 1);
+
   /* Restore all old hooks */
   __free_hook = old_free_hook;
 
@@ -40,11 +46,13 @@ static void my_free_hook(void* ptr, const void* caller) {
 
   /* Restore our own hooks */
   __free_hook = my_free_hook;
-
-  write(STDOUT_FILENO, "Free hook\n", strlen("Free hook\n") + 1);
 }
 
-static void* my_realloc_hook(void* ptr, size_t size, const void* caller) {
+static void*
+my_realloc_hook(void* ptr, size_t size, const void* caller)
+{
+  write(STDOUT_FILENO, "Realloc hook\n", strlen("Realloc hook\n") + 1);
+
   /* Restore all old hooks */
   __realloc_hook = old_realloc_hook;
 
@@ -57,13 +65,14 @@ static void* my_realloc_hook(void* ptr, size_t size, const void* caller) {
   /* Restore our own hooks */
   __realloc_hook = my_realloc_hook;
 
-  write(STDOUT_FILENO, "Realloc hook\n", strlen("Realloc hook\n") + 1);
-
   return result;
 }
 
-static void* my_memalign_hook(size_t alignment, size_t size,
-                              const void* caller) {
+static void*
+my_memalign_hook(size_t alignment, size_t size, const void* caller)
+{
+  write(STDOUT_FILENO, "Memalign hook\n", strlen("Memalign hook\n") + 1);
+
   /* Restore all old hooks */
   __memalign_hook = old_memalign_hook;
 
@@ -76,12 +85,14 @@ static void* my_memalign_hook(size_t alignment, size_t size,
   /* Restore our own hooks */
   __memalign_hook = my_memalign_hook;
 
-  write(STDOUT_FILENO, "Memalign hook\n", strlen("Memalign hook\n") + 1);
-
   return result;
 }
 
-int main(int argc, char** argv) {
+int
+main(int argc, char** argv)
+{
+  write(STDOUT_FILENO, "starting main...\n", strlen("starting main...\n") + 1);
+
   old_malloc_hook = __malloc_hook;
   __malloc_hook = my_malloc_hook;
   old_free_hook = __free_hook;
@@ -107,8 +118,14 @@ int main(int argc, char** argv) {
   void* mem2 = memalign(alignment, size);
 
   printf(
-      "Successfully memalign'd %zu bytes to a %zu-byte alignment at addr %p\n",
-      size, alignment, mem2);
+    "Successfully memalign'd %zu bytes to a %zu-byte alignment at addr %p\n",
+    size, alignment, mem2);
 
   return 0;
 }
+
+// TODO set the core affinity of threads using the pthread_attr_t struct and
+// using the function pthread_attr_setaffinity_np(3)
+// TODO figure out a better way to allocate data for the pthread_t array in
+// helper.c helper_initialize()
+// TODO get write of any snprintf() calls and any write() calls

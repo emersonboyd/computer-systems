@@ -8,9 +8,15 @@
 // pointer to the realloc hook that exists before the realloc hook is updated
 void* (*original_realloc_hook)(void*, size_t, const void*);
 
-size_t min(size_t a, size_t b) { return a < b ? a : b; }
+size_t
+min(size_t a, size_t b)
+{
+  return a < b ? a : b;
+}
 
-void* realloc(void* ptr, size_t size) {
+void*
+realloc(void* ptr, size_t size)
+{
   // check if we should call our realloc hook
   if (__realloc_hook != original_realloc_hook) {
     return __realloc_hook(ptr, size, __builtin_return_address(0));
@@ -37,6 +43,8 @@ void* realloc(void* ptr, size_t size) {
   return ret;
 }
 
-static __attribute__((constructor)) void init_original_realloc_hook(void) {
+static __attribute__((constructor)) void
+init_original_realloc_hook(void)
+{
   original_realloc_hook = __realloc_hook;
 }
