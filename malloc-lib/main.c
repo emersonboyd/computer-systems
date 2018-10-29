@@ -129,7 +129,9 @@ main(int argc, char** argv)
 // TODO set the core affinity of threads using the pthread_attr_t struct and
 // using the function pthread_attr_setaffinity_np(3)
 // TODO figure out a better way to allocate data for the pthread_t array in
-// helper.c helper_initialize()
+// helper.c helper_initialize() other than mmap because we aren't storing stats
+// for mmap
 // TODO get write of any snprintf() calls and any write() calls
 // TODO figure out the true meaning of extern and get rid of as many externs as
 // possible
+// TODO creating new threads affects the bin numbers for the current bin - is that okay?

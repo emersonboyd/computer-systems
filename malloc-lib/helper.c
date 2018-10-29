@@ -12,18 +12,25 @@ pthread_mutex_t BASE_MUTEX = PTHREAD_MUTEX_INITIALIZER;
 
 bool init = false;
 
-head_t heads[3];
-int used_blocks[3]; // each index represents the number of used blocks
-                    // in the corresponding bin
-size_t mmap_size;
-int num_malloc_requests[3];
-int num_free_requests[3];
-MallocArena arena;
+head_t** heads;
+int** used_blocks; // each index represents the number of used blocks
+                   // in the corresponding bin
+size_t* mmap_size;
+int** num_malloc_requests;
+int** num_free_requests;
+__thread MallocArena arena;
 
 int thread_num_counter = 0;
 pthread_t* threads;
 
 const char* ALLOC_SIZE_OUT_OF_RANGE = "Alloc size too large to get bin index\n";
+
+void*
+my_mmap(size_t alloc_size)
+{
+  return mmap(0, alloc_size, PROT_READ | PROT_WRITE,
+              MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+}
 
 void*
 pthread_start(void* arg)
@@ -36,12 +43,12 @@ pthread_start(void* arg)
 
   int i;
   for (i = 0; i < NUM_BINS; i++) {
-    TAILQ_INIT(&(heads[i]));
-    used_blocks[i] = 0;
-    num_malloc_requests[i] = 0;
-    num_free_requests[i] = 0;
+    TAILQ_INIT(&(heads[arena.num][i]));
+    used_blocks[arena.num][i] = 0;
+    num_malloc_requests[arena.num][i] = 0;
+    num_free_requests[arena.num][i] = 0;
   }
-  mmap_size = 0;
+  mmap_size[arena.num] = 0;
 
   char buf[1024];
   snprintf(buf, 1024,
@@ -85,7 +92,7 @@ has_free_block_for_size(size_t alloc_size)
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
 
   int index = get_index_for_size(alloc_size);
-  return !TAILQ_EMPTY(&heads[index]);
+  return !TAILQ_EMPTY(&heads[arena.num][index]);
 }
 
 // returns the bin index associated with the given allocation size
@@ -110,7 +117,7 @@ list_remove(size_t alloc_size)
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
 
   int index = get_index_for_size(alloc_size);
-  head_t* head = &heads[index];
+  head_t* head = &heads[arena.num][index];
 
   node_t* n = TAILQ_FIRST(head);
 
@@ -149,7 +156,7 @@ list_insert(MallocHeader* free_hdr, int num_free_blocks)
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
   int index = get_index_for_size(free_hdr->size);
-  head_t* head = &heads[index];
+  head_t* head = &heads[arena.num][index];
 
   TAILQ_INSERT_TAIL(head, n, nodes);
 }
@@ -164,84 +171,114 @@ helper_initialize()
   write(STDOUT_FILENO, "initializing helper class...\n",
         strlen("initializing helper class...\n") + 1);
 
+  char buf[1024];
+  snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf, strlen(buf) + 1);
+  pthread_mutex_unlock(&BASE_MUTEX);
+
   PAGE_SIZE = sysconf(_SC_PAGESIZE);
   NUM_ARENAS = sysconf(
     _SC_NPROCESSORS_ONLN); // set the number of arenas to the nubmer of cores
 
+  arena.num = 0;
+
   // make sure we malloc the arenas with mmap because the bins will not have
   // been set up
-  // size_t arena_head_array_malloc_size =
-  //   round_up_to_page_size(sizeof(head_t*) * NUM_ARENAS);
-  // size_t arena_counters_array_malloc_size =
-  //   round_up_to_page_size(sizeof(int*) * NUM_ARENAS);
-  // size_t arena_counters_mmap_size_size =
-  //   round_up_to_page_size(sizeof(size_t) * NUM_ARENAS);
-  // heads = (head_t**)malloc(arena_head_array_malloc_size);
-  // used_blocks = (int**)malloc(arena_counters_array_malloc_size);
-  // num_malloc_requests = (int**)malloc(arena_counters_array_malloc_size);
-  // num_free_requests = (int**)malloc(arena_counters_array_malloc_size);
-  // mmap_size = (size_t*)malloc(arena_counters_mmap_size_size);
+  size_t arena_head_array_malloc_size =
+    round_up_to_page_size(sizeof(head_t*) * NUM_ARENAS);
+  size_t arena_counters_array_malloc_size =
+    round_up_to_page_size(sizeof(int*) * NUM_ARENAS);
+  size_t arena_counters_mmap_size_size =
+    round_up_to_page_size(sizeof(size_t) * NUM_ARENAS);
+  heads = (head_t**)my_mmap(arena_head_array_malloc_size);
+  used_blocks = (int**)my_mmap(arena_counters_array_malloc_size);
+  num_malloc_requests = (int**)my_mmap(arena_counters_array_malloc_size);
+  num_free_requests = (int**)my_mmap(arena_counters_array_malloc_size);
+  mmap_size = (size_t*)my_mmap(arena_counters_mmap_size_size);
+  assert(heads != MAP_FAILED, __FILE__, __LINE__);
+  assert(used_blocks != MAP_FAILED, __FILE__, __LINE__);
+  assert(num_malloc_requests != MAP_FAILED, __FILE__, __LINE__);
+  assert(num_free_requests != MAP_FAILED, __FILE__, __LINE__);
+  assert(mmap_size != MAP_FAILED, __FILE__, __LINE__);
 
-  // write(STDOUT_FILENO, "k\n", 3);
+  write(STDOUT_FILENO, "k\n", 3);
 
-  // int i;
-  // for (i = 0; i < NUM_ARENAS; i++) {
-  //   size_t head_array_malloc_size =
-  //     round_up_to_page_size(sizeof(head_t) * NUM_BINS);
-  //   size_t counters_array_malloc_size =
-  //     round_up_to_page_size(sizeof(int) * NUM_BINS);
-  //   heads[i] = (head_t*)malloc(head_array_malloc_size);
-  //   used_blocks[i] = (int*)malloc(counters_array_malloc_size);
-  //   num_malloc_requests[i] = (int*)malloc(counters_array_malloc_size);
-  //   num_free_requests[i] = (int*)malloc(counters_array_malloc_size);
-
-  //   int j;
-  //   for (j = 0; j < NUM_BINS; j++) {
-  //     TAILQ_INIT(&(heads[i][j]));
-  //     used_blocks[i][j] = 0;
-  //     num_malloc_requests[i][j] = 0;
-  //     num_free_requests[i][j] = 0;
-  //   }
-  // }
-
-  // initialize the information for this helper
   int i;
-  for (i = 0; i < NUM_BINS; i++) {
-    TAILQ_INIT(&(heads[i]));
-    used_blocks[i] = 0;
-    num_malloc_requests[i] = 0;
-    num_free_requests[i] = 0;
-  }
-  mmap_size = 0;
+  for (i = 0; i < NUM_ARENAS; i++) {
+    size_t head_array_malloc_size =
+      round_up_to_page_size(sizeof(head_t) * NUM_BINS);
+    size_t counters_array_malloc_size =
+      round_up_to_page_size(sizeof(int) * NUM_BINS);
+    heads[i] = (head_t*)my_mmap(head_array_malloc_size);
+    used_blocks[i] = (int*)my_mmap(counters_array_malloc_size);
+    num_malloc_requests[i] = (int*)my_mmap(counters_array_malloc_size);
+    num_free_requests[i] = (int*)my_mmap(counters_array_malloc_size);
+    assert(heads[i] != MAP_FAILED, __FILE__, __LINE__);
+    assert(used_blocks[i] != MAP_FAILED, __FILE__, __LINE__);
+    assert(num_malloc_requests != MAP_FAILED, __FILE__, __LINE__);
+    assert(num_free_requests != MAP_FAILED, __FILE__, __LINE__);
 
-  // loop over each pthread_t and start it up
+    int j;
+    for (j = 0; j < NUM_BINS; j++) {
+      TAILQ_INIT(&(heads[i][j]));
+      used_blocks[i][j] = 0;
+      num_malloc_requests[i][j] = 0;
+      num_free_requests[i][j] = 0;
+    }
+  }
+
   size_t threads_malloc_size =
     round_up_to_page_size(sizeof(pthread_t) * NUM_ARENAS);
-
-  pthread_mutex_unlock(&BASE_MUTEX);
-
-  threads = (pthread_t*)malloc(threads_malloc_size);
-
-  pthread_mutex_lock(&BASE_MUTEX);
-
-  threads = (pthread_t*)mmap(0, threads_malloc_size, PROT_READ | PROT_WRITE,
-                             MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  threads = (pthread_t*)my_mmap(threads_malloc_size);
   assert(threads != MAP_FAILED, __FILE__, __LINE__);
-
   for (i = 0; i < NUM_ARENAS; i++) {
-    char buf[1024];
-    snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
-    write(STDOUT_FILENO, buf, strlen(buf) + 1);
-    pthread_mutex_unlock(&BASE_MUTEX);
-
     int pthread_create_result =
-      pthread_create(&(threads[i]), NULL, pthread_start, NULL);
+      pthread_create(&threads[i], NULL, pthread_start, NULL);
     assert(pthread_create_result == 0, __FILE__, __LINE__);
-
-    snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
-    write(STDOUT_FILENO, buf, strlen(buf) + 1);
-    pthread_mutex_lock(&BASE_MUTEX);
   }
+
+  // initialize the information for this helper
+  // int i;
+  // for (i = 0; i < NUM_BINS; i++) {
+  //   TAILQ_INIT(&(heads[i]));
+  //   used_blocks[i] = 0;
+  //   num_malloc_requests[i] = 0;
+  //   num_free_requests[i] = 0;
+  // }
+  // mmap_size = 0;
+
+  // // loop over each pthread_t and start it up
+  // size_t threads_malloc_size =
+  //   round_up_to_page_size(sizeof(pthread_t) * NUM_ARENAS);
+
+  // pthread_mutex_unlock(&BASE_MUTEX);
+
+  // threads = (pthread_t*)malloc(threads_malloc_size);
+
+  // pthread_mutex_lock(&BASE_MUTEX);
+
+  // threads = (pthread_t*)mmap(0, threads_malloc_size, PROT_READ | PROT_WRITE,
+  //                            MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  // assert(threads != MAP_FAILED, __FILE__, __LINE__);
+
+  // for (i = 0; i < NUM_ARENAS; i++) {
+  //   char buf[1024];
+  //   snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
+  //   write(STDOUT_FILENO, buf, strlen(buf) + 1);
+  //   pthread_mutex_unlock(&BASE_MUTEX);
+
+  //   int pthread_create_result =
+  //     pthread_create(&(threads[i]), NULL, pthread_start, NULL);
+  //   assert(pthread_create_result == 0, __FILE__, __LINE__);
+
+  //   snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
+  //   write(STDOUT_FILENO, buf, strlen(buf) + 1);
+  //   pthread_mutex_lock(&BASE_MUTEX);
+  // }
+
+  snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf, strlen(buf) + 1);
+  pthread_mutex_lock(&BASE_MUTEX);
 
   write(STDOUT_FILENO, "finished initializing helper class...\n",
         strlen("finished initializing helper class...\n") + 1);
@@ -269,7 +306,7 @@ increment_used_blocks(int index)
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
   assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
 
-  used_blocks[index]++;
+  used_blocks[arena.num][index]++;
 }
 
 void
@@ -278,7 +315,7 @@ decrement_used_blocks(int index)
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
   assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
 
-  used_blocks[index]--;
+  used_blocks[arena.num][index]--;
 }
 
 int
@@ -287,7 +324,7 @@ get_num_used_blocks(int index)
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
   assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
 
-  return used_blocks[index];
+  return used_blocks[arena.num][index];
 }
 
 int
@@ -297,7 +334,7 @@ get_num_free_blocks(int index)
   assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
 
   int num_free_blocks = 0;
-  head_t* head = &heads[index];
+  head_t* head = &heads[arena.num][index];
   node_t* n;
   TAILQ_FOREACH(n, head, nodes)
   {
@@ -314,7 +351,7 @@ increment_mmap_size(size_t alloc_size)
 {
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
 
-  mmap_size += alloc_size;
+  mmap_size[arena.num] += alloc_size;
 }
 
 void
@@ -322,7 +359,7 @@ decrement_mmap_size(size_t alloc_size)
 {
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
 
-  mmap_size -= alloc_size;
+  mmap_size[arena.num] -= alloc_size;
 }
 
 size_t
@@ -330,7 +367,7 @@ get_mmap_size()
 {
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
 
-  return mmap_size;
+  return mmap_size[arena.num];
 }
 
 void
@@ -339,7 +376,7 @@ increment_num_malloc_requests(int index)
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
   assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
 
-  num_malloc_requests[index] += 1;
+  num_malloc_requests[arena.num][index] += 1;
 }
 
 void
@@ -348,7 +385,7 @@ increment_num_free_requests(int index)
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
   assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
 
-  num_free_requests[index] += 1;
+  num_free_requests[arena.num][index] += 1;
 }
 
 int
@@ -357,7 +394,7 @@ get_num_malloc_requests(int index)
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
   assert(index < NUM_BINS && index >= 0, __FILE__, __LINE__);
 
-  return num_malloc_requests[index];
+  return num_malloc_requests[arena.num][index];
 }
 
 int
@@ -366,5 +403,5 @@ get_num_free_requests(int index)
   assert(arena.num >= 0 && arena.num <= NUM_ARENAS, __FILE__, __LINE__);
   assert(index < NUM_BINS, __FILE__, __LINE__);
 
-  return num_free_requests[index];
+  return num_free_requests[arena.num][index];
 }
