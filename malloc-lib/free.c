@@ -22,9 +22,15 @@ free(void* ptr)
     return;
   }
 
+  char buf[1024];
+  snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf, strlen(buf) + 1);
   pthread_mutex_lock(&BASE_MUTEX);
 
   if (!is_init()) {
+    snprintf(buf, 1024, "Calling to initialize helper at file %s line %d\n",
+             __FILE__, __LINE__);
+    write(STDOUT_FILENO, buf, strlen(buf) + 1);
     helper_initialize();
   }
 
@@ -57,6 +63,8 @@ free(void* ptr)
     increment_num_free_requests(index); // update our malloc_stats
   }
 
+  snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf, strlen(buf) + 1);
   pthread_mutex_unlock(&BASE_MUTEX);
 
   return;

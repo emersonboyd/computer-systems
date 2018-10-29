@@ -8,18 +8,21 @@
 void
 malloc_stats()
 {
-  pthread_mutex_t mutex;
-  int mutex_init_result = pthread_mutex_init(&mutex, NULL);
-  assert(mutex_init_result == 0, __FILE__, __LINE__);
-  pthread_mutex_lock(&mutex);
+  char buf2[1024];
+  snprintf(buf2, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf2, strlen(buf2) + 1);
+  pthread_mutex_lock(&BASE_MUTEX);
 
   if (!is_init()) {
+    snprintf(buf2, 1024, "Calling to initialize helper at file %s line %d\n",
+             __FILE__, __LINE__);
+    write(STDOUT_FILENO, buf2, strlen(buf2) + 1);
     helper_initialize();
   }
 
-  pthread_mutex_unlock(&mutex);
-  int mutex_destroy_result = pthread_mutex_destroy(&mutex);
-  assert(mutex_destroy_result == 0, __FILE__, __LINE__);
+  snprintf(buf2, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf2, strlen(buf2) + 1);
+  pthread_mutex_unlock(&BASE_MUTEX);
 
   const char* STR_ARENA_0 = "Arena 0:";
 

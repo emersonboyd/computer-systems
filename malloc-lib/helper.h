@@ -37,12 +37,12 @@ extern int PAGE_SIZE;
 extern int NUM_ARENAS;
 extern pthread_mutex_t BASE_MUTEX;
 extern bool init;
-extern __thread head_t heads[3];
-extern __thread int used_blocks[3];
-extern __thread size_t mmap_size;
-extern __thread int num_malloc_requests[3];
-extern __thread int num_free_requests[3];
-extern __thread MallocArena arena;
+extern head_t heads[3];
+extern int used_blocks[3];
+extern size_t mmap_size;
+extern int num_malloc_requests[3];
+extern int num_free_requests[3];
+extern MallocArena arena;
 extern int thread_num_counter;
 extern pthread_t* threads;
 

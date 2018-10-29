@@ -102,6 +102,8 @@ main(int argc, char** argv)
   old_memalign_hook = __memalign_hook;
   __memalign_hook = my_memalign_hook;
 
+  malloc_stats();
+
   size_t alignment = 64;
   size_t size = 12;
 
@@ -129,3 +131,5 @@ main(int argc, char** argv)
 // TODO figure out a better way to allocate data for the pthread_t array in
 // helper.c helper_initialize()
 // TODO get write of any snprintf() calls and any write() calls
+// TODO figure out the true meaning of extern and get rid of as many externs as
+// possible

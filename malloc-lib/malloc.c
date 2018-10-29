@@ -18,14 +18,20 @@ malloc(size_t size)
     return __malloc_hook(size, __builtin_return_address(0));
   }
 
+  if (size <= 0) {
+    return NULL;
+  }
+
+  char buf[1024];
+  snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf, strlen(buf) + 1);
   pthread_mutex_lock(&BASE_MUTEX);
 
   if (!is_init()) {
+    snprintf(buf, 1024, "Calling to initialize helper at file %s line %d\n",
+             __FILE__, __LINE__);
+    write(STDOUT_FILENO, buf, strlen(buf) + 1);
     helper_initialize();
-  }
-
-  if (size <= 0) {
-    return NULL;
   }
 
   // make sure our MallocHeader will align our memory to 8 bytes
@@ -35,6 +41,8 @@ malloc(size_t size)
   size_t alloc_size = size + sizeof(MallocHeader);
 
   void* ret = NULL;
+
+  write(STDOUT_FILENO, "k1\n", 4);
 
   // check if we can get away with re-using previously allocated memory, else we
   // allocate new memory
@@ -76,10 +84,19 @@ malloc(size_t size)
       MallocHeader* free_ptr_hdr = (MallocHeader*)free_ptr;
       free_ptr_hdr->size = alloc_size;
       free_ptr_hdr->offset = 0;
+      write(STDOUT_FILENO, "k2\n", 4);
+      snprintf(
+        buf, 1024,
+        "Have a free pointer header at %p with number of free blocks %d\n",
+        free_ptr_hdr, num_free_blocks);
+      write(STDOUT_FILENO, buf, strlen(buf) + 1);
       list_insert(free_ptr_hdr, num_free_blocks);
-      increment_used_blocks(index);         // update our malloc_stats
+      write(STDOUT_FILENO, "k3\n", 4);
+      increment_used_blocks(index); // update our malloc_stats
+      write(STDOUT_FILENO, "k4\n", 4);
       increment_num_malloc_requests(index); // update our malloc_stats
     } else {
+
       ret = mmap(0, request_size, PROT_READ | PROT_WRITE,
                  MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
       assert(ret != MAP_FAILED, __FILE__, __LINE__);
@@ -93,6 +110,8 @@ malloc(size_t size)
     hdr->offset = 0;
   }
 
+  snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf, strlen(buf) + 1);
   pthread_mutex_unlock(&BASE_MUTEX);
 
   // make sure our malloc is aligned to 8 bytes

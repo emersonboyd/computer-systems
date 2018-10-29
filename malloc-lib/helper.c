@@ -12,13 +12,13 @@ pthread_mutex_t BASE_MUTEX = PTHREAD_MUTEX_INITIALIZER;
 
 bool init = false;
 
-__thread head_t heads[3];
-__thread int used_blocks[3]; // each index represents the number of used blocks
-                             // in the corresponding bin
-__thread size_t mmap_size;
-__thread int num_malloc_requests[3];
-__thread int num_free_requests[3];
-__thread MallocArena arena;
+head_t heads[3];
+int used_blocks[3]; // each index represents the number of used blocks
+                    // in the corresponding bin
+size_t mmap_size;
+int num_malloc_requests[3];
+int num_free_requests[3];
+MallocArena arena;
 
 int thread_num_counter = 0;
 pthread_t* threads;
@@ -44,7 +44,9 @@ pthread_start(void* arg)
   mmap_size = 0;
 
   char buf[1024];
-  snprintf(buf, 1024, "new thread with arena number %d\n", arena.num);
+  snprintf(buf, 1024,
+           "new thread with arena number %d and mmap_size pointer at %p\n",
+           arena.num, &mmap_size);
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
   pthread_mutex_unlock(&BASE_MUTEX);
@@ -139,6 +141,13 @@ list_insert(MallocHeader* free_hdr, int num_free_blocks)
   n->size = size;
   n->num_free = num_free_blocks - 1;
 
+  char buf[1024];
+  snprintf(
+    buf, 1024,
+    "Have header with block size %zu which corresponds to bin index %d\n",
+    free_hdr->size, get_index_for_size(free_hdr->size));
+  write(STDOUT_FILENO, buf, strlen(buf) + 1);
+
   int index = get_index_for_size(free_hdr->size);
   head_t* head = &heads[index];
 
@@ -215,20 +224,22 @@ helper_initialize()
 
   pthread_mutex_lock(&BASE_MUTEX);
 
-  // threads = (pthread_t*)mmap(0, threads_malloc_size, PROT_READ | PROT_WRITE,
-  //                            MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-  // assert(threads != MAP_FAILED, __FILE__, __LINE__);
+  threads = (pthread_t*)mmap(0, threads_malloc_size, PROT_READ | PROT_WRITE,
+                             MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+  assert(threads != MAP_FAILED, __FILE__, __LINE__);
 
   for (i = 0; i < NUM_ARENAS; i++) {
-    write(STDOUT_FILENO, "creating new thread...\n",
-          strlen("creating new thread...\n") + 1);
-
+    char buf[1024];
+    snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
+    write(STDOUT_FILENO, buf, strlen(buf) + 1);
     pthread_mutex_unlock(&BASE_MUTEX);
 
     int pthread_create_result =
       pthread_create(&(threads[i]), NULL, pthread_start, NULL);
     assert(pthread_create_result == 0, __FILE__, __LINE__);
 
+    snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
+    write(STDOUT_FILENO, buf, strlen(buf) + 1);
     pthread_mutex_lock(&BASE_MUTEX);
   }
 
