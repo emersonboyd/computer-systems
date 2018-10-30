@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,7 +37,19 @@ my_mmap(size_t alloc_size)
 int
 get_arena()
 {
-  int arena = syscall(SYS_gettid) % NUM_ARENAS;
+  // the arena for this thread is the cpu affinity of the thread
+  int arena = -1;
+  cpu_set_t cpu_set;
+  pthread_t current_thread = pthread_self();
+  pthread_getaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
+  int i;
+  for (i = 0; i < NUM_ARENAS; i++) {
+    if (CPU_ISSET(i, &cpu_set)) {
+      arena = i;
+      break;
+    }
+  }
+
   assert(arena >= 0 && arena <= NUM_ARENAS, __FILE__, __LINE__);
   return arena;
 }
@@ -145,11 +158,6 @@ helper_initialize()
   write(STDOUT_FILENO, "initializing helper class...\n",
         strlen("initializing helper class...\n") + 1);
 
-  char buf[1024];
-  snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
-  write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  pthread_mutex_unlock(&BASE_MUTEX);
-
   PAGE_SIZE = sysconf(_SC_PAGESIZE);
   NUM_ARENAS = sysconf(
     _SC_NPROCESSORS_ONLN); // set the number of arenas to the nubmer of cores
@@ -256,10 +264,6 @@ helper_initialize()
   //   write(STDOUT_FILENO, buf, strlen(buf) + 1);
   //   pthread_mutex_lock(&BASE_MUTEX);
   // }
-
-  snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
-  write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  pthread_mutex_lock(&BASE_MUTEX);
 
   write(STDOUT_FILENO, "finished initializing helper class...\n",
         strlen("finished initializing helper class...\n") + 1);

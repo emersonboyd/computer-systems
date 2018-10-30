@@ -1,5 +1,8 @@
-#include <assert.h>
+#define _GNU_SOURCE
+#include "helper.h"
 #include <malloc.h>
+#include <pthread.h>
+#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -88,6 +91,26 @@ my_memalign_hook(size_t alignment, size_t size, const void* caller)
   return result;
 }
 
+void*
+pthread_start(void* arg)
+{
+  int cpu_affinity = *((int*)arg);
+
+  cpu_set_t cpu_set;
+  CPU_ZERO(&cpu_set);
+  CPU_SET(cpu_affinity, &cpu_set);
+
+  pthread_t current_thread = pthread_self();
+  pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
+
+  char buf[1024];
+  snprintf(buf, 1024, "Thread %p has cpu affinity %d\n", &current_thread,
+           cpu_affinity);
+  write(STDOUT_FILENO, buf, strlen(buf) + 1);
+
+  return NULL;
+}
+
 int
 main(int argc, char** argv)
 {
@@ -102,7 +125,18 @@ main(int argc, char** argv)
   old_memalign_hook = __memalign_hook;
   __memalign_hook = my_memalign_hook;
 
-  malloc_stats();
+  int num_arenas = sysconf(_SC_NPROCESSORS_ONLN);
+  pthread_t* threads = malloc(num_arenas * sizeof(pthread_t));
+  int* cpu_affinities = malloc(num_arenas * sizeof(int));
+  int i;
+  for (i = 0; i < num_arenas; i++) {
+    cpu_affinities[i] = i;
+
+    // tell the thread that its cpu affinity should be equal to i
+    int pthread_create_result =
+      pthread_create(&threads[i], NULL, pthread_start, &cpu_affinities[i]);
+    assert(pthread_create_result == 0, __FILE__, __LINE__);
+  }
 
   size_t alignment = 64;
   size_t size = 12;
@@ -110,7 +144,7 @@ main(int argc, char** argv)
   void* mem0 = malloc(size);
 
   printf("Successfully malloc'd %zu bytes at addr %p\n", size, mem0);
-  assert(mem0 != NULL);
+  assert(mem0 != NULL, __FILE__, __LINE__);
 
   void* mem1 = realloc(mem0, size);
 
@@ -137,14 +171,4 @@ main(int argc, char** argv)
 // TODO creating new threads affects the bin numbers for the current bin - is
 // that okay?
 // TODO in each thread i need a global lock surrounding sbrk(), mmap(), munmap()
-//
-
-// size_t threads_malloc_size =
-//   round_up_to_page_size(sizeof(pthread_t) * NUM_ARENAS);
-// threads = (pthread_t*)my_mmap(threads_malloc_size);
-// assert(threads != MAP_FAILED, __FILE__, __LINE__);
-// for (i = 0; i < NUM_ARENAS; i++) {
-//   int pthread_create_result =
-//     pthread_create(&threads[i], NULL, pthread_start, NULL);
-//   assert(pthread_create_result == 0, __FILE__, __LINE__);
-// }
+// Remove "incluce hlper.h" at top of main if possible
