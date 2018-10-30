@@ -134,4 +134,7 @@ main(int argc, char** argv)
 // TODO get write of any snprintf() calls and any write() calls
 // TODO figure out the true meaning of extern and get rid of as many externs as
 // possible
-// TODO creating new threads affects the bin numbers for the current bin - is that okay?
+// TODO creating new threads affects the bin numbers for the current bin - is
+// that okay?
+// TODO in each thread i need a global lock surrounding sbrk(), mmap(), munmap()
+//

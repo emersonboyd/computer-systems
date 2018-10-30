@@ -205,6 +205,8 @@ helper_initialize()
 
   int i;
   for (i = 0; i < NUM_ARENAS; i++) {
+    mmap_size[i] = 0;
+
     size_t head_array_malloc_size =
       round_up_to_page_size(sizeof(head_t) * NUM_BINS);
     size_t counters_array_malloc_size =
@@ -236,6 +238,24 @@ helper_initialize()
       pthread_create(&threads[i], NULL, pthread_start, NULL);
     assert(pthread_create_result == 0, __FILE__, __LINE__);
   }
+
+  // update our sizes
+  increment_mmap_size(arena_head_array_malloc_size);
+  increment_mmap_size(arena_counters_array_malloc_size);
+  increment_mmap_size(arena_counters_array_malloc_size);
+  increment_mmap_size(arena_counters_array_malloc_size);
+  increment_mmap_size(arena_counters_mmap_size_size);
+  for (i = 0; i < NUM_ARENAS; i++) {
+    size_t head_array_malloc_size =
+      round_up_to_page_size(sizeof(head_t) * NUM_BINS);
+    size_t counters_array_malloc_size =
+      round_up_to_page_size(sizeof(int) * NUM_BINS);
+    increment_mmap_size(head_array_malloc_size);
+    increment_mmap_size(counters_array_malloc_size);
+    increment_mmap_size(counters_array_malloc_size);
+    increment_mmap_size(counters_array_malloc_size);
+  }
+  increment_mmap_size(threads_malloc_size);
 
   // initialize the information for this helper
   // int i;
