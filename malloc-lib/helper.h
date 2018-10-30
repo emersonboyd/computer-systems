@@ -28,7 +28,6 @@ typedef struct node
 typedef struct
 {
   pthread_mutex_t mutex;
-  int num;
 } MallocArena;
 
 typedef TAILQ_HEAD(head_s, node) head_t;
@@ -46,6 +45,7 @@ extern __thread MallocArena arena;
 extern int thread_num_counter;
 extern pthread_t* threads;
 
+int get_arena();
 void assert(bool condition, const char* fname, int lineno);
 void helper_initialize();
 bool is_init();
@@ -60,14 +60,14 @@ bool is_aligned(void* ptr, size_t alignment);
 // for malloc_stats
 void increment_used_blocks(int index);
 void decrement_used_blocks(int index);
-int get_num_used_blocks(int index);
-int get_num_free_blocks(int index);
+int get_num_used_blocks(int arena, int index);
+int get_num_free_blocks(int arena, int index);
 void increment_mmap_size(size_t alloc_size);
 void decrement_mmap_size(size_t alloc_size);
-size_t get_mmap_size();
+size_t get_mmap_size(int arena);
 void increment_num_malloc_requests(int index);
 void increment_num_free_requests(int index);
-int get_num_malloc_requests(int index);
-int get_num_free_requests(int index);
+int get_num_malloc_requests(int arena, int index);
+int get_num_free_requests(int arena, int index);
 
 #endif

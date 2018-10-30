@@ -138,3 +138,13 @@ main(int argc, char** argv)
 // that okay?
 // TODO in each thread i need a global lock surrounding sbrk(), mmap(), munmap()
 //
+
+// size_t threads_malloc_size =
+//   round_up_to_page_size(sizeof(pthread_t) * NUM_ARENAS);
+// threads = (pthread_t*)my_mmap(threads_malloc_size);
+// assert(threads != MAP_FAILED, __FILE__, __LINE__);
+// for (i = 0; i < NUM_ARENAS; i++) {
+//   int pthread_create_result =
+//     pthread_create(&threads[i], NULL, pthread_start, NULL);
+//   assert(pthread_create_result == 0, __FILE__, __LINE__);
+// }
