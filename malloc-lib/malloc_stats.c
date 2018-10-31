@@ -64,7 +64,7 @@ malloc_stats()
     char buf[1024];
     int BUF_LEN = 1024;
 
-    snprintf(buf, BUF_LEN, "\n\n%s%d%s\n", STR_ARENA_BEGIN, arena + 1,
+    snprintf(buf, BUF_LEN, "\n\n%s%d%s\n", STR_ARENA_BEGIN, arena,
              STR_ARENA_END);
     write(STDOUT_FILENO, buf, strlen(buf) + 1);
 

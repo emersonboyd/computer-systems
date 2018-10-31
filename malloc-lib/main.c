@@ -8,88 +8,88 @@
 #include <string.h>
 #include <unistd.h>
 
-void* (*old_malloc_hook)(size_t, const void*);
-void (*old_free_hook)(void*, const void*);
-void* (*old_realloc_hook)(void*, size_t, const void*);
-void* (*old_memalign_hook)(size_t, size_t, const void*);
+// void* (*old_malloc_hook)(size_t, const void*);
+// void (*old_free_hook)(void*, const void*);
+// void* (*old_realloc_hook)(void*, size_t, const void*);
+// void* (*old_memalign_hook)(size_t, size_t, const void*);
 
-static void*
-my_malloc_hook(size_t size, const void* caller)
-{
-  write(STDOUT_FILENO, "Malloc hook\n", strlen("Malloc hook\n") + 1);
+// static void*
+// my_malloc_hook(size_t size, const void* caller)
+// {
+//   write(STDOUT_FILENO, "Malloc hook\n", strlen("Malloc hook\n") + 1);
 
-  /* Restore all old hooks */
-  __malloc_hook = old_malloc_hook;
+//   /* Restore all old hooks */
+//   __malloc_hook = old_malloc_hook;
 
-  /* Call recursively */
-  void* result = malloc(size);
+//   /* Call recursively */
+//   void* result = malloc(size);
 
-  /* Save underlying hooks */
-  old_malloc_hook = __malloc_hook;
+//   /* Save underlying hooks */
+//   old_malloc_hook = __malloc_hook;
 
-  /* Restore our own hooks */
-  __malloc_hook = my_malloc_hook;
+//   /* Restore our own hooks */
+//   __malloc_hook = my_malloc_hook;
 
-  return result;
-}
+//   return result;
+// }
 
-static void
-my_free_hook(void* ptr, const void* caller)
-{
-  write(STDOUT_FILENO, "Free hook\n", strlen("Free hook\n") + 1);
+// static void
+// my_free_hook(void* ptr, const void* caller)
+// {
+//   write(STDOUT_FILENO, "Free hook\n", strlen("Free hook\n") + 1);
 
-  /* Restore all old hooks */
-  __free_hook = old_free_hook;
+//   /* Restore all old hooks */
+//   __free_hook = old_free_hook;
 
-  /* Call recursively */
-  free(ptr);
+//   /* Call recursively */
+//   free(ptr);
 
-  /* Save underlying hooks */
-  old_free_hook = __free_hook;
+//   /* Save underlying hooks */
+//   old_free_hook = __free_hook;
 
-  /* Restore our own hooks */
-  __free_hook = my_free_hook;
-}
+//   /* Restore our own hooks */
+//   __free_hook = my_free_hook;
+// }
 
-static void*
-my_realloc_hook(void* ptr, size_t size, const void* caller)
-{
-  write(STDOUT_FILENO, "Realloc hook\n", strlen("Realloc hook\n") + 1);
+// static void*
+// my_realloc_hook(void* ptr, size_t size, const void* caller)
+// {
+//   write(STDOUT_FILENO, "Realloc hook\n", strlen("Realloc hook\n") + 1);
 
-  /* Restore all old hooks */
-  __realloc_hook = old_realloc_hook;
+//   /* Restore all old hooks */
+//   __realloc_hook = old_realloc_hook;
 
-  /* Call recursively */
-  void* result = realloc(ptr, size);
+//   /* Call recursively */
+//   void* result = realloc(ptr, size);
 
-  /* Save underlying hooks */
-  old_realloc_hook = __realloc_hook;
+//   /* Save underlying hooks */
+//   old_realloc_hook = __realloc_hook;
 
-  /* Restore our own hooks */
-  __realloc_hook = my_realloc_hook;
+//   /* Restore our own hooks */
+//   __realloc_hook = my_realloc_hook;
 
-  return result;
-}
+//   return result;
+// }
 
-static void*
-my_memalign_hook(size_t alignment, size_t size, const void* caller)
-{
-  write(STDOUT_FILENO, "Memalign hook\n", strlen("Memalign hook\n") + 1);
+// static void*
+// my_memalign_hook(size_t alignment, size_t size, const void* caller)
+// {
+//   write(STDOUT_FILENO, "Memalign hook\n", strlen("Memalign hook\n") + 1);
 
-  /* Restore all old hooks */
-  __memalign_hook = old_memalign_hook;
+//   /* Restore all old hooks */
+//   __memalign_hook = old_memalign_hook;
 
-  /* Call recursively */
-  void* result = memalign(alignment, size);
+//   /* Call recursively */
+//   void* result = memalign(alignment, size);
 
-  /* Save underlying hooks */
-  old_memalign_hook = __memalign_hook;
+//   /* Save underlying hooks */
+//   old_memalign_hook = __memalign_hook;
 
-  /* Restore our own hooks */
-  __memalign_hook = my_memalign_hook;
+//   /* Restore our own hooks */
+//   __memalign_hook = my_memalign_hook;
 
-  return result;
-}
+//   return result;
+// }
 
 void*
 pthread_start(void* arg)
@@ -107,36 +107,6 @@ pthread_start(void* arg)
   snprintf(buf, 1024, "Thread %p has cpu affinity %d\n", &current_thread,
            cpu_affinity);
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-
-  return NULL;
-}
-
-int
-main(int argc, char** argv)
-{
-  write(STDOUT_FILENO, "starting main...\n", strlen("starting main...\n") + 1);
-
-  old_malloc_hook = __malloc_hook;
-  __malloc_hook = my_malloc_hook;
-  old_free_hook = __free_hook;
-  __free_hook = my_free_hook;
-  old_realloc_hook = __realloc_hook;
-  __realloc_hook = my_realloc_hook;
-  old_memalign_hook = __memalign_hook;
-  __memalign_hook = my_memalign_hook;
-
-  int num_arenas = sysconf(_SC_NPROCESSORS_ONLN);
-  pthread_t* threads = malloc(num_arenas * sizeof(pthread_t));
-  int* cpu_affinities = malloc(num_arenas * sizeof(int));
-  int i;
-  for (i = 0; i < num_arenas; i++) {
-    cpu_affinities[i] = i;
-
-    // tell the thread that its cpu affinity should be equal to i
-    int pthread_create_result =
-      pthread_create(&threads[i], NULL, pthread_start, &cpu_affinities[i]);
-    assert(pthread_create_result == 0, __FILE__, __LINE__);
-  }
 
   size_t alignment = 64;
   size_t size = 12;
@@ -157,6 +127,40 @@ main(int argc, char** argv)
     "Successfully memalign'd %zu bytes to a %zu-byte alignment at addr %p\n",
     size, alignment, mem2);
 
+  return NULL;
+}
+
+int
+main(int argc, char** argv)
+{
+  write(STDOUT_FILENO, "starting main...\n", strlen("starting main...\n") + 1);
+
+  // old_malloc_hook = __malloc_hook;
+  // __malloc_hook = my_malloc_hook;
+  // old_free_hook = __free_hook;
+  // __free_hook = my_free_hook;
+  // old_realloc_hook = __realloc_hook;
+  // __realloc_hook = my_realloc_hook;
+  // old_memalign_hook = __memalign_hook;
+  // __memalign_hook = my_memalign_hook;
+
+  int num_arenas = sysconf(_SC_NPROCESSORS_ONLN);
+  pthread_t* threads = malloc(num_arenas * sizeof(pthread_t));
+  int* cpu_affinities = malloc(num_arenas * sizeof(int));
+  int i;
+  for (i = 0; i < num_arenas; i++) {
+    cpu_affinities[i] = i;
+
+    // tell the thread that its cpu affinity should be equal to i
+    int pthread_create_result =
+      pthread_create(&threads[i], NULL, pthread_start, &cpu_affinities[i]);
+    assert(pthread_create_result == 0, __FILE__, __LINE__);
+  }
+
+  sleep(5);
+
+  malloc_stats();
+
   return 0;
 }
 
@@ -172,3 +176,4 @@ main(int argc, char** argv)
 // that okay?
 // TODO in each thread i need a global lock surrounding sbrk(), mmap(), munmap()
 // Remove "incluce hlper.h" at top of main if possible
+// TODO make sure malloc hooks works
