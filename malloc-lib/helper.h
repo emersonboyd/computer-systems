@@ -31,6 +31,7 @@ typedef struct
   size_t mmap_size;
   int num_malloc_requests[3];
   int num_free_requests[3];
+  int num_mmaped_regions;
 } MallocInfo;
 
 typedef TAILQ_HEAD(head_s, node) head_t;
@@ -47,7 +48,6 @@ extern pthread_t* threads;
 int get_arena();
 void assert(bool condition, const char* fname, int lineno);
 void initialize_helper_if_necessary();
-void helper_initialize();
 void* list_remove(size_t alloc_size);
 void list_insert(MallocHeader* hdr, int num_free_blocks);
 bool use_bins_for_size(size_t alloc_size);
@@ -68,5 +68,6 @@ void increment_num_malloc_requests(int index);
 void increment_num_free_requests(int index);
 int get_num_malloc_requests(int arena, int index);
 int get_num_free_requests(int arena, int index);
+int get_num_mmaped_regions(int arena);
 
 #endif

@@ -69,29 +69,6 @@ is_init()
   return init;
 }
 
-void
-initialize_helper_if_necessary()
-{
-  // return immediately if we've already initialized
-  if (is_init()) {
-    return;
-  }
-
-  // if we're not init, we should acquire a lock and check again if we need to
-  // initialize once we have our lock
-
-  int lock_result = pthread_mutex_lock(&BASE_MUTEX);
-  assert(lock_result == 0, __FILE__, __LINE__);
-
-  if (!is_init()) {
-
-    helper_initialize();
-  }
-
-  int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
-  assert(unlock_result == 0, __FILE__, __LINE__);
-}
-
 bool
 is_aligned(void* ptr, size_t alignment)
 {
@@ -200,6 +177,7 @@ helper_initialize()
   int i;
   for (i = 0; i < NUM_ARENAS; i++) {
     malloc_infos[i].mmap_size = 0;
+    malloc_infos[i].num_mmaped_regions = 0;
 
     size_t head_array_malloc_size =
       round_up_to_page_size(sizeof(head_t) * NUM_BINS);
@@ -236,6 +214,28 @@ helper_initialize()
   increment_mmap_size(arena_mutex_array_size);
 
   init = true;
+}
+
+void
+initialize_helper_if_necessary()
+{
+  // return immediately if we've already initialized
+  if (is_init()) {
+    return;
+  }
+
+  // if we're not init, we should acquire a lock and check again if we need to
+  // initialize once we have our lock
+  int lock_result = pthread_mutex_lock(&BASE_MUTEX);
+  assert(lock_result == 0, __FILE__, __LINE__);
+
+  if (!is_init()) {
+
+    helper_initialize();
+  }
+
+  int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
+  assert(unlock_result == 0, __FILE__, __LINE__);
 }
 
 size_t
@@ -294,12 +294,14 @@ void
 increment_mmap_size(size_t alloc_size)
 {
   malloc_infos[get_arena()].mmap_size += alloc_size;
+  malloc_infos[get_arena()].num_mmaped_regions++;
 }
 
 void
 decrement_mmap_size(size_t alloc_size)
 {
   malloc_infos[get_arena()].mmap_size -= alloc_size;
+  malloc_infos[get_arena()].num_mmaped_regions--;
 }
 
 size_t
@@ -336,4 +338,10 @@ get_num_free_requests(int arena, int index)
   assert(index < NUM_BINS, __FILE__, __LINE__);
 
   return malloc_infos[arena].num_free_requests[index];
+}
+
+int
+get_num_mmaped_regions(int arena)
+{
+  return malloc_infos[arena].num_mmaped_regions;
 }

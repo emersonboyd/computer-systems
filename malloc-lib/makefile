@@ -13,6 +13,7 @@ clean:
 	$(RM) calloc.o
 	$(RM) realloc.o
 	$(RM) memalign.o
+	$(RM) mallinfo.o
 	$(RM) malloc_stats.o
 	$(RM) hello.o
 	$(RM) hello
@@ -40,11 +41,14 @@ realloc.o: realloc.c helper.h
 memalign.o: memalign.c helper.h
 	gcc ${CFLAGS} -c -fpic -o memalign.o memalign.c
 
+mallinfo.o: mallinfo.c helper.h
+	gcc ${CFLAGS} -c -fpic -o mallinfo.o mallinfo.c
+
 malloc_stats.o: malloc_stats.c helper.h
 	gcc ${CFLAGS} -c -fpic -o malloc_stats.o malloc_stats.c
 
-lib: helper.o malloc.o free.o calloc.o realloc.o memalign.o malloc_stats.o
-	gcc ${CFLAGS} -shared -o libmalloc.so helper.o malloc.o free.o calloc.o realloc.o memalign.o malloc_stats.o
+lib: helper.o malloc.o free.o calloc.o realloc.o memalign.o mallinfo.o malloc_stats.o
+	gcc ${CFLAGS} -shared -o libmalloc.so helper.o malloc.o free.o calloc.o realloc.o memalign.o mallinfo.o malloc_stats.o
 
 hello.o: hello.c helper.h
 	gcc ${CFLAGS} -c -fpic -o hello.o hello.c

@@ -1,6 +1,6 @@
 A very basic main file can be run by calling "make" to demonstrate the malloc hooks and the ability to fork while other threads are calling malloc/free. The command "make test" can be called to run the t-test1 program provided by the Professor Arya.
 
-There are three structs, one that defines the used memory (MallocHeader), one that defines the free memory (node_t), and one that is used to preserve malloc statistics (MallocInfo).
+There are three structs, one that defines the used memory (MallocHeader), one that defines the free memory (node_t), and one that is used to preserve malloc statistics (MallocInfo). The struct MallocInfo is used internally and converted to a struct mallinfo when mallinfo() is called. The "usmblks" field in mallinfo is set to -1 because the field doesn't qualify for threaded environments.
 
 MallocHeader always lies directly before the data section of the memory region. It has an attribute size that represents the size of memory from the MallocHeader to the end of the memory region. It also has an attribute offset that represents the size between the beginning of the memory region and the MallocHeader (this is almost always zero unless we are allocating aligned memory with memalign).
 
