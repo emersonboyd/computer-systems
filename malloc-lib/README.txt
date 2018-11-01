@@ -12,4 +12,4 @@ In order to allow for per-core arenas, there are N sets of 3 bins, N MallocInfo 
 
 There are a lot of assert statements placed around the code to ensure proper code functionality and to detect the source of any bugs as immediately as possible. If this were production code, I would remove the assert statements.
 
-There are no known bugs/errors within the code.
+The only known bug within this code is running zsh, where "quitting" will result in a "memory exhausted" message from grep. It is unkown why this bug occurs.
