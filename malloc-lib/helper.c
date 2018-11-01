@@ -170,7 +170,6 @@ list_insert(MallocHeader* free_hdr, int num_free_blocks)
 void
 fork_child_handler()
 {
-  printf("\n\n\n\n\n\n\n\n\n\n\n\n\nYAYAYAYA\n\n\n\n\n\n\n\n\n\n\n\n\n");
   // ensure that we unlock the global lock mutex if it's been locked
   int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
   assert(unlock_result == 0, __FILE__, __LINE__);
