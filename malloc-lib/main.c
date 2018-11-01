@@ -105,7 +105,7 @@ pthread_start_spam(void* arg)
   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
 
   int i;
-  for (i = 0; i < 1000; i++) {
+  for (i = 0; i < 1000000; i++) {
     void* mem0 = malloc(100);
     free(mem0);
   }
@@ -127,6 +127,7 @@ perform_forks(const int cpu_affinity)
 
   int i;
   for (i = 0; i < 10; i++) {
+    printf("Calling fork...\n");
     int fork_result = fork();
     assert(fork_result >= 0, __FILE__, __LINE__);
 
