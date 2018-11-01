@@ -25,10 +25,13 @@ typedef struct node
   TAILQ_ENTRY(node) nodes;
 } node_t;
 
-// typedef struct
-// {
-//   pthread_mutex_t mutex;
-// } MallocArena;
+typedef struct
+{
+  int used_blocks[3];
+  size_t mmap_size;
+  int num_malloc_requests[3];
+  int num_free_requests[3];
+} MallocInfo;
 
 typedef TAILQ_HEAD(head_s, node) head_t;
 
@@ -37,10 +40,7 @@ extern int NUM_ARENAS;
 extern pthread_mutex_t BASE_MUTEX;
 extern bool init;
 extern head_t** heads;
-extern int** used_blocks;
-extern size_t* mmap_size;
-extern int** num_malloc_requests;
-extern int** num_free_requests;
+extern MallocInfo* malloc_infos;
 extern pthread_mutex_t* mutexs;
 extern int thread_num_counter;
 extern pthread_t* threads;
