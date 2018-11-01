@@ -27,7 +27,7 @@ free(void* ptr)
   char buf[1024];
   snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  int lock_result = pthread_mutex_lock(&BASE_MUTEX);
+  int lock_result = pthread_mutex_lock(&mutexs[get_arena()]);
   assert(lock_result == 0, __FILE__, __LINE__);
 
   MallocHeader* hdr = (MallocHeader*)(ptr - sizeof(MallocHeader));
@@ -42,8 +42,15 @@ free(void* ptr)
     size_t offset = hdr->offset;
     size_t size = hdr->size;
 
+    lock_result = pthread_mutex_lock(&BASE_MUTEX);
+    assert(lock_result == 0, __FILE__, __LINE__);
+
     int munmap_result =
       munmap((void*)hdr - hdr->offset, hdr->offset + hdr->size);
+
+    int unlock_result = pthread_mutex_lock(&BASE_MUTEX);
+    assert(unlock_result == 0, __FILE__, __LINE__);
+
     if (munmap_result < 0) {
       perror("failed to map region");
     }
@@ -61,7 +68,7 @@ free(void* ptr)
 
   snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
+  int unlock_result = pthread_mutex_unlock(&mutexs[get_arena()]);
   assert(unlock_result == 0, __FILE__, __LINE__);
 
   return;

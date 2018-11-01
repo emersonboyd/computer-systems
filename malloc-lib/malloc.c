@@ -24,7 +24,7 @@ malloc(size_t size)
 
   initialize_helper_if_necessary();
 
-  int lock_result = pthread_mutex_lock(&BASE_MUTEX);
+  int lock_result = pthread_mutex_lock(&mutexs[get_arena()]);
   assert(lock_result == 0, __FILE__, __LINE__);
   char buf[1024];
   snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
@@ -64,7 +64,15 @@ malloc(size_t size)
     if (use_bins_for_size(alloc_size)) {
       int index = get_index_for_size(alloc_size);
       alloc_size = BIN_SIZES[index];
+
+      lock_result = pthread_mutex_lock(&BASE_MUTEX);
+      assert(lock_result == 0, __FILE__, __LINE__);
+
       ret = sbrk(request_size);
+
+      int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
+      assert(unlock_result == 0, __FILE__, __LINE__);
+
       if (ret < 0) {
         errno = ENOMEM;
         return NULL;
@@ -92,9 +100,15 @@ malloc(size_t size)
       write(STDOUT_FILENO, "k4\n", 4);
       increment_num_malloc_requests(index); // update our malloc_stats
     } else {
+      lock_result = pthread_mutex_lock(&BASE_MUTEX);
+      assert(lock_result == 0, __FILE__, __LINE__);
 
       ret = mmap(0, request_size, PROT_READ | PROT_WRITE,
                  MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+
+      int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
+      assert(unlock_result == 0, __FILE__, __LINE__);
+
       assert(ret != MAP_FAILED, __FILE__, __LINE__);
       alloc_size = request_size;
       increment_mmap_size(alloc_size); // update our malloc_stats
@@ -108,7 +122,7 @@ malloc(size_t size)
 
   snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
+  int unlock_result = pthread_mutex_unlock(&mutexs[get_arena()]);
   assert(unlock_result == 0, __FILE__, __LINE__);
 
   // make sure our malloc is aligned to 8 bytes
