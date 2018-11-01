@@ -10,23 +10,20 @@ static const int NUM_BINS = 3;
 static const size_t BIN_SIZES[] = { 64, 128, 512 };
 static const unsigned long ALIGN_BYTES = 8;
 
-typedef struct
-{
+typedef struct {
   size_t size;   // the allocation size to the end of the memory region
                  // allocation, including the size of the header
   size_t offset; // this represents the bytes offset from the beginning of the
                  // region allocation, often zero
 } MallocHeader;
 
-typedef struct node
-{
+typedef struct node {
   size_t size;
   int num_free;
   TAILQ_ENTRY(node) nodes;
 } node_t;
 
-typedef struct
-{
+typedef struct {
   int used_blocks[3];
   size_t mmap_size;
   int num_malloc_requests[3];

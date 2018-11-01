@@ -7,20 +7,14 @@
 #include "helper.h"
 
 static const char* ERROR_MESSAGE_ALIGNMENT_NOT_POWER_OF_TWO =
-  "Given alignment must be a power of two\n";
+    "Given alignment must be a power of two\n";
 
 // pointer to the memalign hook that exists before the memalign hook is updated
 void* (*original_memalign_hook)(size_t, size_t, const void*);
 
-size_t
-max(size_t a, size_t b)
-{
-  return a > b ? a : b;
-}
+size_t max(size_t a, size_t b) { return a > b ? a : b; }
 
-void*
-memalign(size_t alignment, size_t size)
-{
+void* memalign(size_t alignment, size_t size) {
   // check if we should call our memalign hook
   if (__memalign_hook != original_memalign_hook) {
     return __memalign_hook(alignment, size, __builtin_return_address(0));
@@ -48,7 +42,7 @@ memalign(size_t alignment, size_t size)
     // alignment possible
     size_t size_factor = (alignment / ALIGN_BYTES);
     size_t single_data_size =
-      max(size_factor * size, BIN_SIZES[NUM_BINS - 1] * 2);
+        max(size_factor * size, BIN_SIZES[NUM_BINS - 1] * 2);
     size_t data_size = single_data_size * 3;
     size_t request_size = data_size + 2 * sizeof(MallocHeader);
 
@@ -94,8 +88,6 @@ memalign(size_t alignment, size_t size)
   return ret;
 }
 
-static __attribute__((constructor)) void
-init_original_memalign_hook(void)
-{
+static __attribute__((constructor)) void init_original_memalign_hook(void) {
   original_memalign_hook = __memalign_hook;
 }

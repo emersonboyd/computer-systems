@@ -5,9 +5,7 @@
 
 #include "helper.h"
 
-void
-malloc_stats()
-{
+void malloc_stats() {
   initialize_helper_if_necessary();
 
   const char* STR_ARENA_BEGIN = "Arena ";

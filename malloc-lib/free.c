@@ -10,9 +10,7 @@
 // pointer to the free hook that exists before the free hook is updated
 void (*original_free_hook)(void*, const void*);
 
-void
-free(void* ptr)
-{
+void free(void* ptr) {
   // check if we should call our free hook
   if (__free_hook != original_free_hook) {
     return __free_hook(ptr, __builtin_return_address(0));
@@ -36,7 +34,7 @@ free(void* ptr)
   }
 
   assert(hdr->size == BIN_SIZES[0] || hdr->size == BIN_SIZES[1] ||
-           hdr->size == BIN_SIZES[2] || hdr->size > BIN_SIZES[2],
+             hdr->size == BIN_SIZES[2] || hdr->size > BIN_SIZES[2],
          __FILE__, __LINE__);
 
   // if we have an allocated size greater than the bin holds, we just "munmap"
@@ -50,7 +48,7 @@ free(void* ptr)
     assert(lock_result == 0, __FILE__, __LINE__);
 
     int munmap_result =
-      munmap((void*)hdr - hdr->offset, hdr->offset + hdr->size);
+        munmap((void*)hdr - hdr->offset, hdr->offset + hdr->size);
 
     int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
     assert(unlock_result == 0, __FILE__, __LINE__);
@@ -76,8 +74,6 @@ free(void* ptr)
   return;
 }
 
-static __attribute__((constructor)) void
-init_original_free_hook(void)
-{
+static __attribute__((constructor)) void init_original_free_hook(void) {
   original_free_hook = __free_hook;
 }

@@ -15,9 +15,7 @@ void (*old_free_hook)(void*, const void*);
 void* (*old_realloc_hook)(void*, size_t, const void*);
 void* (*old_memalign_hook)(size_t, size_t, const void*);
 
-static void*
-my_malloc_hook(size_t size, const void* caller)
-{
+static void* my_malloc_hook(size_t size, const void* caller) {
   write(STDOUT_FILENO, "Malloc hook\n", strlen("Malloc hook\n") + 1);
 
   /* Restore all old hooks */
@@ -35,9 +33,7 @@ my_malloc_hook(size_t size, const void* caller)
   return result;
 }
 
-static void
-my_free_hook(void* ptr, const void* caller)
-{
+static void my_free_hook(void* ptr, const void* caller) {
   write(STDOUT_FILENO, "Free hook\n", strlen("Free hook\n") + 1);
 
   /* Restore all old hooks */
@@ -53,9 +49,7 @@ my_free_hook(void* ptr, const void* caller)
   __free_hook = my_free_hook;
 }
 
-static void*
-my_realloc_hook(void* ptr, size_t size, const void* caller)
-{
+static void* my_realloc_hook(void* ptr, size_t size, const void* caller) {
   write(STDOUT_FILENO, "Realloc hook\n", strlen("Realloc hook\n") + 1);
 
   /* Restore all old hooks */
@@ -73,9 +67,8 @@ my_realloc_hook(void* ptr, size_t size, const void* caller)
   return result;
 }
 
-static void*
-my_memalign_hook(size_t alignment, size_t size, const void* caller)
-{
+static void* my_memalign_hook(size_t alignment, size_t size,
+                              const void* caller) {
   write(STDOUT_FILENO, "Memalign hook\n", strlen("Memalign hook\n") + 1);
 
   /* Restore all old hooks */
@@ -93,9 +86,7 @@ my_memalign_hook(size_t alignment, size_t size, const void* caller)
   return result;
 }
 
-void*
-pthread_start_spam(void* arg)
-{
+void* pthread_start_spam(void* arg) {
   // set the cpu affinity based on the given argument
   const int cpu_affinity = *((int*)arg);
   cpu_set_t cpu_set;
@@ -113,9 +104,7 @@ pthread_start_spam(void* arg)
   return NULL;
 }
 
-void*
-perform_forks(const int cpu_affinity)
-{
+void* perform_forks(const int cpu_affinity) {
   // set the cpu affinity based on the given argument
   cpu_set_t cpu_set;
   CPU_ZERO(&cpu_set);
@@ -148,9 +137,7 @@ perform_forks(const int cpu_affinity)
   return NULL;
 }
 
-int
-main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
   old_malloc_hook = __malloc_hook;
   __malloc_hook = my_malloc_hook;
   old_free_hook = __free_hook;
@@ -184,8 +171,8 @@ main(int argc, char** argv)
     cpu_affinities[i] = i;
 
     // tell the thread that its cpu affinity should be equal to i
-    int pthread_create_result =
-      pthread_create(&threads[i], NULL, pthread_start_spam, &cpu_affinities[i]);
+    int pthread_create_result = pthread_create(
+        &threads[i], NULL, pthread_start_spam, &cpu_affinities[i]);
     assert(pthread_create_result == 0, __FILE__, __LINE__);
   }
 
