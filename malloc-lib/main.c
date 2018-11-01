@@ -3,132 +3,146 @@
 #include <malloc.h>
 #include <pthread.h>
 #include <sched.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
-// void* (*old_malloc_hook)(size_t, const void*);
-// void (*old_free_hook)(void*, const void*);
-// void* (*old_realloc_hook)(void*, size_t, const void*);
-// void* (*old_memalign_hook)(size_t, size_t, const void*);
+void* (*old_malloc_hook)(size_t, const void*);
+void (*old_free_hook)(void*, const void*);
+void* (*old_realloc_hook)(void*, size_t, const void*);
+void* (*old_memalign_hook)(size_t, size_t, const void*);
 
-// static void*
-// my_malloc_hook(size_t size, const void* caller)
-// {
-//   write(STDOUT_FILENO, "Malloc hook\n", strlen("Malloc hook\n") + 1);
+static void*
+my_malloc_hook(size_t size, const void* caller)
+{
+  write(STDOUT_FILENO, "Malloc hook\n", strlen("Malloc hook\n") + 1);
 
-//   /* Restore all old hooks */
-//   __malloc_hook = old_malloc_hook;
+  /* Restore all old hooks */
+  __malloc_hook = old_malloc_hook;
 
-//   /* Call recursively */
-//   void* result = malloc(size);
+  /* Call recursively */
+  void* result = malloc(size);
 
-//   /* Save underlying hooks */
-//   old_malloc_hook = __malloc_hook;
+  /* Save underlying hooks */
+  old_malloc_hook = __malloc_hook;
 
-//   /* Restore our own hooks */
-//   __malloc_hook = my_malloc_hook;
+  /* Restore our own hooks */
+  __malloc_hook = my_malloc_hook;
 
-//   return result;
-// }
+  return result;
+}
 
-// static void
-// my_free_hook(void* ptr, const void* caller)
-// {
-//   write(STDOUT_FILENO, "Free hook\n", strlen("Free hook\n") + 1);
+static void
+my_free_hook(void* ptr, const void* caller)
+{
+  write(STDOUT_FILENO, "Free hook\n", strlen("Free hook\n") + 1);
 
-//   /* Restore all old hooks */
-//   __free_hook = old_free_hook;
+  /* Restore all old hooks */
+  __free_hook = old_free_hook;
 
-//   /* Call recursively */
-//   free(ptr);
+  /* Call recursively */
+  free(ptr);
 
-//   /* Save underlying hooks */
-//   old_free_hook = __free_hook;
+  /* Save underlying hooks */
+  old_free_hook = __free_hook;
 
-//   /* Restore our own hooks */
-//   __free_hook = my_free_hook;
-// }
+  /* Restore our own hooks */
+  __free_hook = my_free_hook;
+}
 
-// static void*
-// my_realloc_hook(void* ptr, size_t size, const void* caller)
-// {
-//   write(STDOUT_FILENO, "Realloc hook\n", strlen("Realloc hook\n") + 1);
+static void*
+my_realloc_hook(void* ptr, size_t size, const void* caller)
+{
+  write(STDOUT_FILENO, "Realloc hook\n", strlen("Realloc hook\n") + 1);
 
-//   /* Restore all old hooks */
-//   __realloc_hook = old_realloc_hook;
+  /* Restore all old hooks */
+  __realloc_hook = old_realloc_hook;
 
-//   /* Call recursively */
-//   void* result = realloc(ptr, size);
+  /* Call recursively */
+  void* result = realloc(ptr, size);
 
-//   /* Save underlying hooks */
-//   old_realloc_hook = __realloc_hook;
+  /* Save underlying hooks */
+  old_realloc_hook = __realloc_hook;
 
-//   /* Restore our own hooks */
-//   __realloc_hook = my_realloc_hook;
+  /* Restore our own hooks */
+  __realloc_hook = my_realloc_hook;
 
-//   return result;
-// }
+  return result;
+}
 
-// static void*
-// my_memalign_hook(size_t alignment, size_t size, const void* caller)
-// {
-//   write(STDOUT_FILENO, "Memalign hook\n", strlen("Memalign hook\n") + 1);
+static void*
+my_memalign_hook(size_t alignment, size_t size, const void* caller)
+{
+  write(STDOUT_FILENO, "Memalign hook\n", strlen("Memalign hook\n") + 1);
 
-//   /* Restore all old hooks */
-//   __memalign_hook = old_memalign_hook;
+  /* Restore all old hooks */
+  __memalign_hook = old_memalign_hook;
 
-//   /* Call recursively */
-//   void* result = memalign(alignment, size);
+  /* Call recursively */
+  void* result = memalign(alignment, size);
 
-//   /* Save underlying hooks */
-//   old_memalign_hook = __memalign_hook;
+  /* Save underlying hooks */
+  old_memalign_hook = __memalign_hook;
 
-//   /* Restore our own hooks */
-//   __memalign_hook = my_memalign_hook;
+  /* Restore our own hooks */
+  __memalign_hook = my_memalign_hook;
 
-//   return result;
-// }
+  return result;
+}
 
 void*
-pthread_start(void* arg)
+pthread_start_spam(void* arg)
 {
+  // set the cpu affinity based on the given argument
   const int cpu_affinity = *((int*)arg);
-
   cpu_set_t cpu_set;
   CPU_ZERO(&cpu_set);
   CPU_SET(cpu_affinity, &cpu_set);
-
   pthread_t current_thread = pthread_self();
-
   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
 
-  char buf[1024];
-  snprintf(buf, 1024, "Thread %p has cpu affinity %d\n", &current_thread,
-           cpu_affinity);
-  write(STDOUT_FILENO, buf, strlen(buf) + 1);
+  int i;
+  for (i = 0; i < 1000; i++) {
+    void* mem0 = malloc(100);
+    free(mem0);
+  }
 
-  size_t alignment = 64;
-  size_t size = 12;
+  return NULL;
+}
 
-  void* mem0 = malloc(size);
-  assert(mem0 != NULL, __FILE__, __LINE__);
+void*
+perform_forks(const int cpu_affinity)
+{
+  // set the cpu affinity based on the given argument
+  cpu_set_t cpu_set;
+  CPU_ZERO(&cpu_set);
+  CPU_SET(cpu_affinity, &cpu_set);
+  pthread_t current_thread = pthread_self();
+  pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
 
-  printf("Successfully malloc'd %zu bytes at addr %p\n", size, mem0);
+  bool parent = true;
 
-  void* mem1 = realloc(mem0, size);
-  assert(mem1 != NULL, __FILE__, __LINE__);
+  int i;
+  for (i = 0; i < 10; i++) {
+    int fork_result = fork();
+    assert(fork_result >= 0, __FILE__, __LINE__);
 
-  printf("Successfully realloc'd %zu bytes from addr %p to %p\n", size, mem0,
-         mem1);
+    // stop forking new threads if we are the child
+    if (fork_result == 0) {
+      parent = false;
+      break;
+    }
+  }
 
-  void* mem2 = memalign(alignment, size);
-  assert(is_aligned(mem2, alignment), __FILE__, __LINE__);
-
-  printf(
-    "Successfully memalign'd %zu bytes to a %zu-byte alignment at addr %p\n",
-    size, alignment, mem2);
+  // try to access the base mutex and kill the children silently
+  if (!parent) {
+    char* args[] = { "./hello", NULL };
+    execvp("./hello", args);
+    exit(0);
+  }
 
   return NULL;
 }
@@ -136,52 +150,50 @@ pthread_start(void* arg)
 int
 main(int argc, char** argv)
 {
-  // write(STDOUT_FILENO, "starting main...\n", strlen("starting main...\n") +
-  // 1);
+  old_malloc_hook = __malloc_hook;
+  __malloc_hook = my_malloc_hook;
+  old_free_hook = __free_hook;
+  __free_hook = my_free_hook;
+  old_realloc_hook = __realloc_hook;
+  __realloc_hook = my_realloc_hook;
+  old_memalign_hook = __memalign_hook;
+  __memalign_hook = my_memalign_hook;
 
-  // old_malloc_hook = __malloc_hook;
-  // __malloc_hook = my_malloc_hook;
-  // old_free_hook = __free_hook;
-  // __free_hook = my_free_hook;
-  // old_realloc_hook = __realloc_hook;
-  // __realloc_hook = my_realloc_hook;
-  // old_memalign_hook = __memalign_hook;
-  // __memalign_hook = my_memalign_hook;
+  // showcase the malloc hooks
+  void* ptr0 = malloc(100);
+  void* ptr1 = realloc(ptr0, 100);
+  void* ptr2 = memalign(64, 12);
+  free(ptr1);
+  free(ptr2);
 
+  // reset the malloc hooks back to nothing so we don't spam output
+  __malloc_hook = old_malloc_hook;
+  __free_hook = old_free_hook;
+  __realloc_hook = old_realloc_hook;
+  __memalign_hook = old_memalign_hook;
+
+  // now, show off fork() capabilities by creating a bunch of working threads
   int num_arenas = sysconf(_SC_NPROCESSORS_ONLN);
   pthread_t* threads = malloc(num_arenas * sizeof(pthread_t));
   int* cpu_affinities = malloc(num_arenas * sizeof(int));
+
+  // spawn working threads
   int i;
   for (i = 0; i < num_arenas; i++) {
     cpu_affinities[i] = i;
 
     // tell the thread that its cpu affinity should be equal to i
     int pthread_create_result =
-      pthread_create(&threads[i], NULL, pthread_start, &cpu_affinities[i]);
+      pthread_create(&threads[i], NULL, pthread_start_spam, &cpu_affinities[i]);
     assert(pthread_create_result == 0, __FILE__, __LINE__);
   }
 
-  sleep(1);
+  // give our forker a random cpu affinity
+  srand(time(NULL));
+  int fork_cpu_affinity = rand() % num_arenas;
+  perform_forks(fork_cpu_affinity);
 
-  // for (i = 0; i < num_arenas; i++) {
-  //   int arena = -1;
-  //   cpu_set_t cpu_set;
-  //   CPU_ZERO(&cpu_set);
-  //   pthread_t current_thread = threads[i];
-  //   pthread_getaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
-  //   int j;
-  //   for (j = 0; j < num_arenas; j++) {
-  //     if (CPU_ISSET(j, &cpu_set)) {
-  //       arena = j;
-  //       break;
-  //     }
-  //   }
-
-  //   printf("Arena: %d\n", arena);
-  //   assert(arena == i, __FILE__, __LINE__);
-  // }
-
-  malloc_stats();
+  sleep(2);
 
   return 0;
 }

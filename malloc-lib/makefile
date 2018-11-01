@@ -14,6 +14,8 @@ clean:
 	$(RM) realloc.o
 	$(RM) memalign.o
 	$(RM) malloc_stats.o
+	$(RM) hello.o
+	$(RM) hello
 	$(RM) main.o
 	$(RM) main
 	$(RM) t-test1.o
@@ -44,10 +46,16 @@ malloc_stats.o: malloc_stats.c helper.h
 lib: helper.o malloc.o free.o calloc.o realloc.o memalign.o malloc_stats.o
 	gcc ${CFLAGS} -shared -o libmalloc.so helper.o malloc.o free.o calloc.o realloc.o memalign.o malloc_stats.o
 
+hello.o: hello.c helper.h
+	gcc ${CFLAGS} -c -fpic -o hello.o hello.c
+
+hello: hello.o helper.o
+	gcc ${CFLAGS} -g -o hello hello.o helper.o
+
 main.o: main.c helper.h
 	gcc ${CFLAGS} -c -fpic -o main.o main.c
 
-main: main.o helper.o
+main: main.o helper.o hello
 	gcc ${CFLAGS} -g -o main main.o helper.o
 
 t-test1.o: t-test1.c
