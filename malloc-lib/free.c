@@ -24,9 +24,6 @@ free(void* ptr)
 
   initialize_helper_if_necessary();
 
-  char buf[1024];
-  snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
-  write(STDOUT_FILENO, buf, strlen(buf) + 1);
   int lock_result = pthread_mutex_lock(&mutexs[get_arena()]);
   assert(lock_result == 0, __FILE__, __LINE__);
 
@@ -73,8 +70,6 @@ free(void* ptr)
     increment_num_free_requests(index); // update our malloc_stats
   }
 
-  snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
-  write(STDOUT_FILENO, buf, strlen(buf) + 1);
   int unlock_result = pthread_mutex_unlock(&mutexs[get_arena()]);
   assert(unlock_result == 0, __FILE__, __LINE__);
 

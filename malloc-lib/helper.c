@@ -81,21 +81,14 @@ initialize_helper_if_necessary()
   // if we're not init, we should acquire a lock and check again if we need to
   // initialize once we have our lock
 
-  char buf2[1024];
-  snprintf(buf2, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
-  write(STDOUT_FILENO, buf2, strlen(buf2) + 1);
   int lock_result = pthread_mutex_lock(&BASE_MUTEX);
   assert(lock_result == 0, __FILE__, __LINE__);
 
   if (!is_init()) {
-    snprintf(buf2, 1024, "Calling to initialize helper at file %s line %d\n",
-             __FILE__, __LINE__);
-    write(STDOUT_FILENO, buf2, strlen(buf2) + 1);
+
     helper_initialize();
   }
 
-  snprintf(buf2, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
-  write(STDOUT_FILENO, buf2, strlen(buf2) + 1);
   int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
   assert(unlock_result == 0, __FILE__, __LINE__);
 }
@@ -169,13 +162,6 @@ list_insert(MallocHeader* free_hdr, int num_free_blocks)
   n->size = size;
   n->num_free = num_free_blocks - 1;
 
-  char buf[1024];
-  snprintf(
-    buf, 1024,
-    "Have header with block size %zu which corresponds to bin index %d\n",
-    free_hdr->size, get_index_for_size(free_hdr->size));
-  write(STDOUT_FILENO, buf, strlen(buf) + 1);
-
   int index = get_index_for_size(free_hdr->size);
   head_t* head = &heads[get_arena()][index];
 
@@ -196,9 +182,6 @@ helper_initialize()
 {
   assert(!is_init(), __FILE__, __LINE__);
 
-  write(STDOUT_FILENO, "initializing helper class...\n",
-        strlen("initializing helper class...\n") + 1);
-
   PAGE_SIZE = sysconf(_SC_PAGESIZE);
   NUM_ARENAS = sysconf(
     _SC_NPROCESSORS_ONLN); // set the number of arenas to the nubmer of cores
@@ -215,8 +198,6 @@ helper_initialize()
   malloc_infos = (MallocInfo*)my_mmap(arena_malloc_info_array_size);
   assert(heads != MAP_FAILED, __FILE__, __LINE__);
   assert(malloc_infos != MAP_FAILED, __FILE__, __LINE__);
-
-  write(STDOUT_FILENO, "k\n", 3);
 
   int i;
   for (i = 0; i < NUM_ARENAS; i++) {
@@ -255,48 +236,6 @@ helper_initialize()
     increment_mmap_size(head_array_malloc_size);
   }
   increment_mmap_size(arena_mutex_array_size);
-
-  // initialize the information for this helper
-  // int i;
-  // for (i = 0; i < NUM_BINS; i++) {
-  //   TAILQ_INIT(&(heads[i]));
-  //   used_blocks[i] = 0;
-  //   num_malloc_requests[i] = 0;
-  //   num_free_requests[i] = 0;
-  // }
-  // mmap_size = 0;
-
-  // // loop over each pthread_t and start it up
-  // size_t threads_malloc_size =
-  //   round_up_to_page_size(sizeof(pthread_t) * NUM_ARENAS);
-
-  // pthread_mutex_unlock(&BASE_MUTEX);
-
-  // threads = (pthread_t*)malloc(threads_malloc_size);
-
-  // pthread_mutex_lock(&BASE_MUTEX);
-
-  // threads = (pthread_t*)mmap(0, threads_malloc_size, PROT_READ | PROT_WRITE,
-  //                            MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-  // assert(threads != MAP_FAILED, __FILE__, __LINE__);
-
-  // for (i = 0; i < NUM_ARENAS; i++) {
-  //   char buf[1024];
-  //   snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
-  //   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  //   pthread_mutex_unlock(&BASE_MUTEX);
-
-  //   int pthread_create_result =
-  //     pthread_create(&(threads[i]), NULL, pthread_start, NULL);
-  //   assert(pthread_create_result == 0, __FILE__, __LINE__);
-
-  //   snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
-  //   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  //   pthread_mutex_lock(&BASE_MUTEX);
-  // }
-
-  write(STDOUT_FILENO, "finished initializing helper class...\n",
-        strlen("finished initializing helper class...\n") + 1);
 
   init = true;
 }

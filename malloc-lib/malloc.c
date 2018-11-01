@@ -26,9 +26,6 @@ malloc(size_t size)
 
   int lock_result = pthread_mutex_lock(&mutexs[get_arena()]);
   assert(lock_result == 0, __FILE__, __LINE__);
-  char buf[1024];
-  snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
-  write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
   // make sure our MallocHeader will align our memory to 8 bytes
   assert(sizeof(MallocHeader) % ALIGN_BYTES == 0, __FILE__, __LINE__);
@@ -37,8 +34,6 @@ malloc(size_t size)
   size_t alloc_size = size + sizeof(MallocHeader);
 
   void* ret = NULL;
-
-  write(STDOUT_FILENO, "k1\n", 4);
 
   // check if we can get away with re-using previously allocated memory, else we
   // allocate new memory
@@ -88,16 +83,8 @@ malloc(size_t size)
       MallocHeader* free_ptr_hdr = (MallocHeader*)free_ptr;
       free_ptr_hdr->size = alloc_size;
       free_ptr_hdr->offset = 0;
-      write(STDOUT_FILENO, "k2\n", 4);
-      snprintf(
-        buf, 1024,
-        "Have a free pointer header at %p with number of free blocks %d\n",
-        free_ptr_hdr, num_free_blocks);
-      write(STDOUT_FILENO, buf, strlen(buf) + 1);
       list_insert(free_ptr_hdr, num_free_blocks);
-      write(STDOUT_FILENO, "k3\n", 4);
-      increment_used_blocks(index); // update our malloc_stats
-      write(STDOUT_FILENO, "k4\n", 4);
+      increment_used_blocks(index);         // update our malloc_stats
       increment_num_malloc_requests(index); // update our malloc_stats
     } else {
       lock_result = pthread_mutex_lock(&BASE_MUTEX);
@@ -120,8 +107,6 @@ malloc(size_t size)
     hdr->offset = 0;
   }
 
-  snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
-  write(STDOUT_FILENO, buf, strlen(buf) + 1);
   int unlock_result = pthread_mutex_unlock(&mutexs[get_arena()]);
   assert(unlock_result == 0, __FILE__, __LINE__);
 
