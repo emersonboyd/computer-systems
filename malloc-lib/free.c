@@ -48,7 +48,7 @@ free(void* ptr)
     int munmap_result =
       munmap((void*)hdr - hdr->offset, hdr->offset + hdr->size);
 
-    int unlock_result = pthread_mutex_lock(&BASE_MUTEX);
+    int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
     assert(unlock_result == 0, __FILE__, __LINE__);
 
     if (munmap_result < 0) {
