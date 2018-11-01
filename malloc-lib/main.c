@@ -113,26 +113,22 @@ pthread_start(void* arg)
   size_t size = 12;
 
   void* mem0 = malloc(size);
-  // printf("wowza2 %d\n", cpu_affinity);
-
-  // printf("Successfully malloc'd %zu bytes at addr %p\n", size, mem0);
   assert(mem0 != NULL, __FILE__, __LINE__);
+
+  printf("Successfully malloc'd %zu bytes at addr %p\n", size, mem0);
 
   void* mem1 = realloc(mem0, size);
   assert(mem1 != NULL, __FILE__, __LINE__);
 
-  // printf("Successfully realloc'd %zu bytes from addr %p to %p\n", size, mem0,
-  //        mem1);
-
-  snprintf(buf, 1024, "\n\n\nSHOULD BE ARENA%d\n\n\n", cpu_affinity);
-  write(STDOUT_FILENO, buf, strlen(buf) + 1);
+  printf("Successfully realloc'd %zu bytes from addr %p to %p\n", size, mem0,
+         mem1);
 
   void* mem2 = memalign(alignment, size);
   assert(is_aligned(mem2, alignment), __FILE__, __LINE__);
 
-  // printf(
-  //   "Successfully memalign'd %zu bytes to a %zu-byte alignment at addr %p\n",
-  //   size, alignment, mem2);
+  printf(
+    "Successfully memalign'd %zu bytes to a %zu-byte alignment at addr %p\n",
+    size, alignment, mem2);
 
   return NULL;
 }
