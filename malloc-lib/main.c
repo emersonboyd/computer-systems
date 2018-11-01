@@ -94,13 +94,14 @@
 void*
 pthread_start(void* arg)
 {
-  int cpu_affinity = *((int*)arg);
+  const int cpu_affinity = *((int*)arg);
 
   cpu_set_t cpu_set;
   CPU_ZERO(&cpu_set);
   CPU_SET(cpu_affinity, &cpu_set);
 
   pthread_t current_thread = pthread_self();
+
   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
 
   char buf[1024];
@@ -112,20 +113,26 @@ pthread_start(void* arg)
   size_t size = 12;
 
   void* mem0 = malloc(size);
+  // printf("wowza2 %d\n", cpu_affinity);
 
-  printf("Successfully malloc'd %zu bytes at addr %p\n", size, mem0);
+  // printf("Successfully malloc'd %zu bytes at addr %p\n", size, mem0);
   assert(mem0 != NULL, __FILE__, __LINE__);
 
   void* mem1 = realloc(mem0, size);
+  assert(mem1 != NULL, __FILE__, __LINE__);
 
-  printf("Successfully realloc'd %zu bytes from addr %p to %p\n", size, mem0,
-         mem1);
+  // printf("Successfully realloc'd %zu bytes from addr %p to %p\n", size, mem0,
+  //        mem1);
+
+  snprintf(buf, 1024, "\n\n\nSHOULD BE ARENA%d\n\n\n", cpu_affinity);
+  write(STDOUT_FILENO, buf, strlen(buf) + 1);
 
   void* mem2 = memalign(alignment, size);
+  assert(is_aligned(mem2, alignment), __FILE__, __LINE__);
 
-  printf(
-    "Successfully memalign'd %zu bytes to a %zu-byte alignment at addr %p\n",
-    size, alignment, mem2);
+  // printf(
+  //   "Successfully memalign'd %zu bytes to a %zu-byte alignment at addr %p\n",
+  //   size, alignment, mem2);
 
   return NULL;
 }
@@ -133,7 +140,8 @@ pthread_start(void* arg)
 int
 main(int argc, char** argv)
 {
-  write(STDOUT_FILENO, "starting main...\n", strlen("starting main...\n") + 1);
+  // write(STDOUT_FILENO, "starting main...\n", strlen("starting main...\n") +
+  // 1);
 
   // old_malloc_hook = __malloc_hook;
   // __malloc_hook = my_malloc_hook;
@@ -157,7 +165,25 @@ main(int argc, char** argv)
     assert(pthread_create_result == 0, __FILE__, __LINE__);
   }
 
-  sleep(5);
+  sleep(1);
+
+  // for (i = 0; i < num_arenas; i++) {
+  //   int arena = -1;
+  //   cpu_set_t cpu_set;
+  //   CPU_ZERO(&cpu_set);
+  //   pthread_t current_thread = threads[i];
+  //   pthread_getaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
+  //   int j;
+  //   for (j = 0; j < num_arenas; j++) {
+  //     if (CPU_ISSET(j, &cpu_set)) {
+  //       arena = j;
+  //       break;
+  //     }
+  //   }
+
+  //   printf("Arena: %d\n", arena);
+  //   assert(arena == i, __FILE__, __LINE__);
+  // }
 
   malloc_stats();
 
@@ -177,3 +203,7 @@ main(int argc, char** argv)
 // TODO in each thread i need a global lock surrounding sbrk(), mmap(), munmap()
 // Remove "incluce hlper.h" at top of main if possible
 // TODO make sure malloc hooks works
+// TDODO get rid of excess write statements
+// TODO get rid of unecessary assert in my_mmap
+// TODO get rid of my_mmap_calls extern in helper.h and in helper.c
+// TODO make strucvts for malloc stats and for arena (mutex, arena_num)

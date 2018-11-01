@@ -22,17 +22,13 @@ malloc(size_t size)
     return NULL;
   }
 
+  initialize_helper_if_necessary();
+
+  int lock_result = pthread_mutex_lock(&BASE_MUTEX);
+  assert(lock_result == 0, __FILE__, __LINE__);
   char buf[1024];
   snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  pthread_mutex_lock(&BASE_MUTEX);
-
-  if (!is_init()) {
-    snprintf(buf, 1024, "Calling to initialize helper at file %s line %d\n",
-             __FILE__, __LINE__);
-    write(STDOUT_FILENO, buf, strlen(buf) + 1);
-    helper_initialize();
-  }
 
   // make sure our MallocHeader will align our memory to 8 bytes
   assert(sizeof(MallocHeader) % ALIGN_BYTES == 0, __FILE__, __LINE__);
@@ -112,7 +108,8 @@ malloc(size_t size)
 
   snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  pthread_mutex_unlock(&BASE_MUTEX);
+  int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
+  assert(unlock_result == 0, __FILE__, __LINE__);
 
   // make sure our malloc is aligned to 8 bytes
   assert(is_aligned(ret + sizeof(MallocHeader), ALIGN_BYTES), __FILE__,

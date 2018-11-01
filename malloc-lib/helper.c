@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "helper.h"
@@ -20,7 +21,7 @@ int** used_blocks; // each index represents the number of used blocks
 size_t* mmap_size;
 int** num_malloc_requests;
 int** num_free_requests;
-__thread MallocArena arena;
+pthread_mutex_t* mutexs;
 
 int thread_num_counter = 0;
 pthread_t* threads;
@@ -40,6 +41,7 @@ get_arena()
   // the arena for this thread is the cpu affinity of the thread
   int arena = -1;
   cpu_set_t cpu_set;
+  CPU_ZERO(&cpu_set);
   pthread_t current_thread = pthread_self();
   pthread_getaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
   int i;
@@ -50,7 +52,10 @@ get_arena()
     }
   }
 
-  assert(arena >= 0 && arena <= NUM_ARENAS, __FILE__, __LINE__);
+  assert(arena >= 0 && arena < NUM_ARENAS, __FILE__, __LINE__);
+  char buf[1024];
+  snprintf(buf, 1024, "Returning arena %d\n", arena);
+  write(STDOUT_FILENO, buf, strlen(buf));
   return arena;
 }
 
@@ -64,6 +69,42 @@ assert(bool condition, const char* fname, int lineno)
     write(STDERR_FILENO, buf, strlen(buf) + 1);
     exit(1);
   }
+}
+
+bool
+is_init()
+{
+  return init;
+}
+
+void
+initialize_helper_if_necessary()
+{
+  // return immediately if we've already initialized
+  if (is_init()) {
+    return;
+  }
+
+  // if we're not init, we should acquire a lock and check again if we need to
+  // initialize once we have our lock
+
+  char buf2[1024];
+  snprintf(buf2, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf2, strlen(buf2) + 1);
+  int lock_result = pthread_mutex_lock(&BASE_MUTEX);
+  assert(lock_result == 0, __FILE__, __LINE__);
+
+  if (!is_init()) {
+    snprintf(buf2, 1024, "Calling to initialize helper at file %s line %d\n",
+             __FILE__, __LINE__);
+    write(STDOUT_FILENO, buf2, strlen(buf2) + 1);
+    helper_initialize();
+  }
+
+  snprintf(buf2, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
+  write(STDOUT_FILENO, buf2, strlen(buf2) + 1);
+  int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
+  assert(unlock_result == 0, __FILE__, __LINE__);
 }
 
 bool
@@ -153,8 +194,6 @@ helper_initialize()
 {
   assert(!is_init(), __FILE__, __LINE__);
 
-  init = true;
-
   write(STDOUT_FILENO, "initializing helper class...\n",
         strlen("initializing helper class...\n") + 1);
 
@@ -209,6 +248,16 @@ helper_initialize()
     }
   }
 
+  // make sure we have one mutex for every core arena
+  size_t arena_mutex_array_size =
+    round_up_to_page_size(sizeof(pthread_mutex_t) * NUM_ARENAS);
+  mutexs = (pthread_mutex_t*)my_mmap(arena_mutex_array_size);
+  for (i = 0; i < NUM_ARENAS; i++) {
+    int mutex_init_result = pthread_mutex_init(&(mutexs[i]), NULL);
+    assert(mutex_init_result == 0, __FILE__, __LINE__);
+  }
+  assert(mutexs != MAP_FAILED, __FILE__, __LINE__);
+
   // update our sizes
   increment_mmap_size(arena_head_array_malloc_size);
   increment_mmap_size(arena_counters_array_malloc_size);
@@ -225,6 +274,7 @@ helper_initialize()
     increment_mmap_size(counters_array_malloc_size);
     increment_mmap_size(counters_array_malloc_size);
   }
+  increment_mmap_size(arena_mutex_array_size);
 
   // initialize the information for this helper
   // int i;
@@ -267,6 +317,8 @@ helper_initialize()
 
   write(STDOUT_FILENO, "finished initializing helper class...\n",
         strlen("finished initializing helper class...\n") + 1);
+
+  init = true;
 }
 
 size_t
@@ -277,12 +329,6 @@ round_up_to_page_size(size_t size)
   }
 
   return PAGE_SIZE * (size / PAGE_SIZE + 1);
-}
-
-bool
-is_init()
-{
-  return init;
 }
 
 void

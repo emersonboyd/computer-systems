@@ -22,17 +22,13 @@ free(void* ptr)
     return;
   }
 
+  initialize_helper_if_necessary();
+
   char buf[1024];
   snprintf(buf, 1024, "Lock at file %s line %d\n", __FILE__, __LINE__);
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  pthread_mutex_lock(&BASE_MUTEX);
-
-  if (!is_init()) {
-    snprintf(buf, 1024, "Calling to initialize helper at file %s line %d\n",
-             __FILE__, __LINE__);
-    write(STDOUT_FILENO, buf, strlen(buf) + 1);
-    helper_initialize();
-  }
+  int lock_result = pthread_mutex_lock(&BASE_MUTEX);
+  assert(lock_result == 0, __FILE__, __LINE__);
 
   MallocHeader* hdr = (MallocHeader*)(ptr - sizeof(MallocHeader));
   assert(hdr->size == BIN_SIZES[0] || hdr->size == BIN_SIZES[1] ||
@@ -65,7 +61,8 @@ free(void* ptr)
 
   snprintf(buf, 1024, "Unlock at file %s line %d\n", __FILE__, __LINE__);
   write(STDOUT_FILENO, buf, strlen(buf) + 1);
-  pthread_mutex_unlock(&BASE_MUTEX);
+  int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
+  assert(unlock_result == 0, __FILE__, __LINE__);
 
   return;
 }
