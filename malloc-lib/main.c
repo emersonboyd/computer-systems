@@ -104,8 +104,8 @@ pthread_start_spam(void* arg)
   pthread_t current_thread = pthread_self();
   pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpu_set);
 
-  int i;
-  for (i = 0; i < 1000000; i++) {
+  // constantly spam malloc and free to try and fork when mallocing or freeing
+  while (true) {
     void* mem0 = malloc(100);
     free(mem0);
   }
@@ -189,14 +189,18 @@ main(int argc, char** argv)
     assert(pthread_create_result == 0, __FILE__, __LINE__);
   }
 
+  // sleep to allow the other threads to start
+  sleep(1);
+
   // give our forker a random cpu affinity
   srand(time(NULL));
   int fork_cpu_affinity = rand() % num_arenas;
   perform_forks(fork_cpu_affinity);
 
-  sleep(2);
+  // sleep to print out the forked processes
+  sleep(1);
 
-  return 0;
+  exit(0);
 }
 
 // TODO get write of any snprintf() calls and any write() calls
