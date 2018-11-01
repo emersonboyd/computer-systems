@@ -19,7 +19,6 @@ head_t** heads;
 MallocInfo* malloc_infos;
 pthread_mutex_t* mutexs;
 
-int thread_num_counter = 0;
 pthread_t* threads;
 
 const char* ALLOC_SIZE_OUT_OF_RANGE = "Alloc size too large to get bin index\n";

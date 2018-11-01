@@ -198,20 +198,4 @@ main(int argc, char** argv)
   return 0;
 }
 
-// TODO set the core affinity of threads using the pthread_attr_t struct and
-// using the function pthread_attr_setaffinity_np(3)
-// TODO figure out a better way to allocate data for the pthread_t array in
-// helper.c helper_initialize() other than mmap because we aren't storing stats
-// for mmap
 // TODO get write of any snprintf() calls and any write() calls
-// TODO figure out the true meaning of extern and get rid of as many externs as
-// possible
-// TODO creating new threads affects the bin numbers for the current bin - is
-// that okay?
-// TODO in each thread i need a global lock surrounding sbrk(), mmap(), munmap()
-// Remove "incluce hlper.h" at top of main if possible
-// TODO make sure malloc hooks works
-// TDODO get rid of excess write statements
-// TODO get rid of unecessary assert in my_mmap
-// TODO get rid of my_mmap_calls extern in helper.h and in helper.c
-// TODO make strucvts for malloc stats and for arena (mutex, arena_num)

@@ -42,7 +42,6 @@ extern bool init;
 extern head_t** heads;
 extern MallocInfo* malloc_infos;
 extern pthread_mutex_t* mutexs;
-extern int thread_num_counter;
 extern pthread_t* threads;
 
 int get_arena();
