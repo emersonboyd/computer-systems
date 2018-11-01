@@ -31,6 +31,13 @@ free(void* ptr)
   assert(lock_result == 0, __FILE__, __LINE__);
 
   MallocHeader* hdr = (MallocHeader*)(ptr - sizeof(MallocHeader));
+
+  if (hdr->size == 0) {
+    int unlock_result = pthread_mutex_unlock(&mutexs[get_arena()]);
+    assert(unlock_result == 0, __FILE__, __LINE__);
+    return;
+  }
+
   assert(hdr->size == BIN_SIZES[0] || hdr->size == BIN_SIZES[1] ||
            hdr->size == BIN_SIZES[2] || hdr->size > BIN_SIZES[2],
          __FILE__, __LINE__);

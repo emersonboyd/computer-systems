@@ -183,6 +183,15 @@ list_insert(MallocHeader* free_hdr, int num_free_blocks)
 }
 
 void
+fork_child_handler()
+{
+  printf("\n\n\n\n\n\n\n\n\n\n\n\n\nYAYAYAYA\n\n\n\n\n\n\n\n\n\n\n\n\n");
+  // ensure that we unlock the global lock mutex if it's been locked
+  int unlock_result = pthread_mutex_unlock(&BASE_MUTEX);
+  assert(unlock_result == 0, __FILE__, __LINE__);
+}
+
+void
 helper_initialize()
 {
   assert(!is_init(), __FILE__, __LINE__);
@@ -193,6 +202,8 @@ helper_initialize()
   PAGE_SIZE = sysconf(_SC_PAGESIZE);
   NUM_ARENAS = sysconf(
     _SC_NPROCESSORS_ONLN); // set the number of arenas to the nubmer of cores
+
+  pthread_atfork(NULL, NULL, fork_child_handler);
 
   // make sure we malloc the arenas with mmap because the bins will not have
   // been set up
